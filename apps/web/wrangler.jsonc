@@ -1,0 +1,25 @@
+// Deploy config for Cloudflare Workers Static Assets.
+//
+// There is no Worker script here — `assets` with no `main` deploys the built
+// PWA as pure static files, which is all this app needs: everything runs on the
+// phone and there is no server call anywhere in the client (CLAUDE.md §2.1).
+//
+// Wrangler must be pointed at this file explicitly from the repo root, because
+// the root is an npm workspace and wrangler will not guess which app to deploy:
+//
+//   npx wrangler deploy --config apps/web/wrangler.jsonc
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kisanmitra",
+  "compatibility_date": "2026-08-30",
+  "assets": {
+    "directory": "./dist",
+    // Navigation is state rather than routes (§10), so every path serves the
+    // shell. `_redirects` says the same thing; this is the platform-level
+    // version of it and applies even if that file is ever dropped.
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
