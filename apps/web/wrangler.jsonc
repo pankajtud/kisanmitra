@@ -19,8 +19,9 @@
   "assets": {
     "directory": "./dist",
     // Navigation is state rather than routes (§10), so every path serves the
-    // shell. `_redirects` says the same thing; this is the platform-level
-    // version of it and applies even if that file is ever dropped.
+    // shell. This is the only place that is configured: the equivalent
+    // `/* /index.html 200` in a _redirects file is rejected by Workers Assets
+    // as a redirect loop, because the rule also matches /index.html itself.
     "not_found_handling": "single-page-application"
   },
   "observability": {
