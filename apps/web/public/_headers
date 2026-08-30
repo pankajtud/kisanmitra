@@ -1,0 +1,23 @@
+# Cloudflare Pages response headers.
+#
+# The service worker is the one file that must never be cached: a stale sw.js
+# pins a user to an old build of the app and they stop receiving updates
+# entirely. Same for index.html, which names the current asset hashes.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# Everything under /assets carries a content hash in its filename, so it can be
+# cached forever — this is what makes a repeat visit free on a 3G connection.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY

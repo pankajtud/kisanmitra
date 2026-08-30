@@ -1,0 +1,4 @@
+# The app is a single page — navigation is state, not routes (CLAUDE.md §10) —
+# so any path should serve the shell rather than a 404. Real files still win:
+# Pages serves static assets before consulting this file.
+/*  /index.html  200
