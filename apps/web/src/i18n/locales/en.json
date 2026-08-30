@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Kisan Mitra",
+    "offline": "No internet — you can keep working"
+  },
+  "home": {
+    "greeting": "Namaste",
+    "addExpensePhoto": "Photograph a receipt",
+    "addExpenseManual": "Add an expense without a photo",
+    "seasonLabel": "Spent this season",
+    "seeAll": "See the full record",
+    "entryCount_one": "{{count}} expense",
+    "entryCount_other": "{{count}} expenses"
+  },
+  "expense": {
+    "newTitle": "New expense",
+    "editTitle": "Change expense",
+    "amountLabel": "How many rupees?",
+    "amountPlaceholder": "0",
+    "dateLabel": "When?",
+    "categoryLabel": "What was it for?",
+    "fieldLabel": "Which field?",
+    "fieldAll": "Whole farm",
+    "vendorLabel": "Who did you pay?",
+    "vendorPlaceholder": "Shop or person's name",
+    "notesLabel": "Anything to note?",
+    "notesPlaceholder": "One line for yourself",
+    "save": "Save expense",
+    "saveEdit": "Save changes",
+    "saved": "Expense saved",
+    "amountMissing": "Fill in the rupees",
+    "categoryMissing": "Choose what the expense was for",
+    "photoAlt": "Photo of the receipt",
+    "retakePhoto": "Take another photo",
+    "photoSaved": "Photo is saved on this phone"
+  },
+  "list": {
+    "title": "This season's record",
+    "total": "Total spent",
+    "empty": "No expenses yet.",
+    "emptyAction": "Press the button below to photograph your first receipt.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "noCategory": "No category"
+  },
+  "detail": {
+    "title": "Expense",
+    "edit": "Change",
+    "delete": "Remove",
+    "deleteQuestion": "Remove this expense?",
+    "deleteConfirm": "Yes, remove it",
+    "deleted": "Expense removed"
+  },
+  "sync": {
+    "localOnly": "Saved on this phone",
+    "pendingCount_one": "{{count}} item still to send",
+    "pendingCount_other": "{{count}} items still to send"
+  },
+  "voice": {
+    "start": "Speak instead",
+    "listening": "Speak now…",
+    "stop": "Stop",
+    "needsInternet": "Speaking needs internet",
+    "notSupported": "This phone can't do voice input",
+    "failed": "Didn't catch that, say it again"
+  },
+  "numpad": {
+    "done": "Done",
+    "backspace": "Delete one digit",
+    "clear": "Clear"
+  },
+  "date": { "today": "Today", "pick": "Pick a date" },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "skip": "Skip",
+    "optional": "optional",
+    "loading": "Opening…"
+  },
+  "error": {
+    "photoFailed": "Couldn't take the photo. Try again.",
+    "saveFailed": "Not saved. Press again.",
+    "notFound": "That expense wasn't found."
+  }
+}

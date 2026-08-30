@@ -1,0 +1,29 @@
+{
+  "name": "kisanmitra",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @kisanmitra/web",
+    "dev:api": "npm run dev -w @kisanmitra/api",
+    "build": "npm run build -w @kisanmitra/shared && npm run build -w @kisanmitra/web && npm run build -w @kisanmitra/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:migrate": "npm run db:migrate -w @kisanmitra/api",
+    "db:seed": "npm run db:seed -w @kisanmitra/api"
+  },
+  "allowScripts": {
+    "@tailwindcss/oxide@4.1.14": true,
+    "esbuild@0.18.20": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
+  }
+}

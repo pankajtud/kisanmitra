@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+/**
+ * The register is a paper ledger, so the app is ink on paper. Everything is
+ * sized for a cracked screen, a thumb with soil on it, and direct sunlight
+ * (CLAUDE.md §10). There is no light grey on white anywhere: the lightest text
+ * token below still clears 7:1 on the page background.
+ */
+@theme {
+  --color-paper: #faf7f0;
+  --color-paper-raised: #ffffff;
+  --color-rule: #d9d2c4;
+
+  --color-ink: #14180f;
+  --color-ink-soft: #4b4a3d; /* 8.2:1 on paper — readable, not decorative */
+
+  --color-brand: #1b5e20;
+  --color-brand-dark: #123f16;
+  --color-brand-tint: #e6efe4;
+
+  --color-rupee: #7a3e00;
+  --color-danger: #a4161a;
+  --color-danger-tint: #fbe9e9;
+
+  --font-sans: 'Noto Sans Devanagari', 'Noto Sans', system-ui, -apple-system, sans-serif;
+
+  /* Minimum touch target. Nothing tappable is ever smaller. */
+  --spacing-touch: 3.5rem; /* 56px */
+}
+
+html {
+  background: var(--color-paper);
+  /* Bigger than a typical app: our reader may be 60 and reading Hindi slowly. */
+  font-size: 18px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* Room for the home indicator / gesture bar. */
+  padding-bottom: env(safe-area-inset-bottom);
+  overscroll-behavior-y: none;
+}
+
+/* Latin digits for amounts, Devanagari for words — faster to read (§10). */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* `btn` is a real utility, not a component class, so the variants below can
+   @apply it (Tailwind v4 only lets @apply reach registered utilities). */
+@utility btn {
+  display: inline-flex;
+  min-height: var(--spacing-touch);
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  padding-inline: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.2;
+  user-select: none;
+  transition: background-color 150ms;
+}
+
+@layer components {
+  .btn-primary {
+    @apply btn bg-brand text-paper active:bg-brand-dark;
+  }
+  .btn-secondary {
+    @apply btn border-2 border-brand bg-paper-raised text-brand-dark active:bg-brand-tint;
+  }
+  .btn-quiet {
+    @apply btn text-ink-soft active:bg-rule/40;
+  }
+  .btn-danger {
+    @apply btn border-2 border-danger bg-paper-raised text-danger active:bg-danger-tint;
+  }
+
+  .card {
+    @apply rounded-2xl border-2 border-rule bg-paper-raised;
+  }
+
+  .label {
+    @apply mb-2 block text-lg font-semibold text-ink;
+  }
+}
+
+/* Focus is always visible — keyboard, switch control, or a stylus (§10). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

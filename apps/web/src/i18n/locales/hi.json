@@ -1,0 +1,88 @@
+{
+  "app": {
+    "name": "किसान मित्र",
+    "offline": "इंटरनेट नहीं है — काम चलता रहेगा"
+  },
+  "home": {
+    "greeting": "नमस्ते",
+    "addExpensePhoto": "रसीद की फोटो लें",
+    "addExpenseManual": "बिना फोटो के खर्च जोड़ें",
+    "seasonLabel": "इस सीजन का खर्च",
+    "seeAll": "पूरा हिसाब देखें",
+    "entryCount_one": "{{count}} खर्च",
+    "entryCount_other": "{{count}} खर्च"
+  },
+  "expense": {
+    "newTitle": "नया खर्च",
+    "editTitle": "खर्च बदलें",
+    "amountLabel": "कितने रुपये?",
+    "amountPlaceholder": "0",
+    "dateLabel": "कब?",
+    "categoryLabel": "किस चीज़ का खर्च?",
+    "fieldLabel": "कौन सा खेत?",
+    "fieldAll": "पूरा खेत",
+    "vendorLabel": "किसको दिए?",
+    "vendorPlaceholder": "दुकान या आदमी का नाम",
+    "notesLabel": "कुछ और लिखना है?",
+    "notesPlaceholder": "अपने लिए एक लाइन",
+    "save": "खर्च सेव करें",
+    "saveEdit": "बदलाव सेव करें",
+    "saved": "खर्च सेव हो गया",
+    "amountMissing": "रुपये भरें",
+    "categoryMissing": "किस चीज़ का खर्च है, वो चुनें",
+    "photoAlt": "रसीद की फोटो",
+    "retakePhoto": "दूसरी फोटो लें",
+    "photoSaved": "फोटो इस फ़ोन में सेव है"
+  },
+  "list": {
+    "title": "इस सीजन का हिसाब",
+    "total": "कुल खर्च",
+    "empty": "अभी कोई खर्च नहीं जुड़ा।",
+    "emptyAction": "नीचे का बटन दबाकर पहली रसीद की फोटो लें।",
+    "today": "आज",
+    "yesterday": "कल",
+    "noCategory": "बिना श्रेणी"
+  },
+  "detail": {
+    "title": "खर्च",
+    "edit": "बदलें",
+    "delete": "हटाएं",
+    "deleteQuestion": "यह खर्च हटा दें?",
+    "deleteConfirm": "हां, हटाएं",
+    "deleted": "खर्च हटा दिया"
+  },
+  "sync": {
+    "localOnly": "इस फ़ोन में सेव",
+    "pendingCount_one": "{{count}} चीज़ भेजनी बाकी है",
+    "pendingCount_other": "{{count}} चीज़ें भेजनी बाकी हैं"
+  },
+  "voice": {
+    "start": "बोलकर भरें",
+    "listening": "बोलिए…",
+    "stop": "बस करें",
+    "needsInternet": "बोलकर भरने के लिए इंटरनेट चाहिए",
+    "notSupported": "इस फ़ोन में बोलकर भरना नहीं चलता",
+    "failed": "सुनाई नहीं दिया, फिर से बोलिए"
+  },
+  "numpad": {
+    "done": "हो गया",
+    "backspace": "एक अंक मिटाएं",
+    "clear": "सब मिटाएं"
+  },
+  "date": {
+    "today": "आज",
+    "pick": "तारीख चुनें"
+  },
+  "common": {
+    "back": "वापस",
+    "cancel": "रहने दें",
+    "skip": "छोड़ें",
+    "optional": "मर्ज़ी से",
+    "loading": "खुल रहा है…"
+  },
+  "error": {
+    "photoFailed": "फोटो नहीं ली जा सकी। दोबारा कोशिश करें।",
+    "saveFailed": "सेव नहीं हुआ। दोबारा दबाएं।",
+    "notFound": "यह खर्च नहीं मिला।"
+  }
+}
