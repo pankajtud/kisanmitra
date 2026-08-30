@@ -2,7 +2,7 @@
  * Expense reads and writes. Everything is local and synchronous-feeling: no
  * function here awaits the network, and none can (CLAUDE.md §2.1).
  */
-import { uuidv7 } from '@kisanmitra/shared';
+import { totalHouseholdShare, uuidv7 } from '@kisanmitra/shared';
 import { db } from './db.js';
 import type { AppContext } from './seed.js';
 import type { LocalExpense, LocalPhoto, LocalReceipt } from './types.js';
@@ -16,6 +16,16 @@ export interface ExpenseInput {
   notes: string | null;
   entryMethod: LocalExpense['entryMethod'];
   receiptId?: string | null;
+  /** Who the cost was shared with. Null when the household paid it all. */
+  partnerName: string | null;
+  /** The partner's portion in rupees. */
+  partnerShare: number | null;
+  /** Which crop the money went on. Null = the whole farm. */
+  cropId: string | null;
+  /** What was actually bought: 'यूरिया', 'डीजल'. */
+  product: string | null;
+  quantity: number | null;
+  unit: string | null;
 }
 
 function now(): string {
@@ -83,6 +93,12 @@ export async function saveReceiptDraft(
     amount: null,
     vendor: null,
     notes: null,
+    partnerName: null,
+    partnerShare: null,
+    cropId: null,
+    product: null,
+    quantity: null,
+    unit: null,
     receiptId,
     entryMethod: 'photo',
     createdBy: ctx.userId,
@@ -130,6 +146,12 @@ export async function saveExpense(
       amount: input.amount,
       vendor: input.vendor,
       notes: input.notes,
+      partnerName: input.partnerName,
+      partnerShare: input.partnerShare,
+      cropId: input.cropId,
+      product: input.product,
+      quantity: input.quantity,
+      unit: input.unit,
       receiptId: input.receiptId ?? existing?.receiptId ?? null,
       entryMethod: existing?.entryMethod ?? input.entryMethod,
       createdBy: existing?.createdBy ?? ctx.userId,
@@ -189,12 +211,50 @@ export async function listExpenses(cropCycleId: string): Promise<LocalExpense[]>
   );
 }
 
-export async function seasonTotal(cropCycleId: string): Promise<{ total: number; count: number }> {
+/**
+ * What the season has cost *this household*.
+ *
+ * `total` is the household's own share — a joint tractor bill counts only the
+ * part they paid. `billed` is the full face value of the receipts, which is a
+ * different and much larger number; showing the two side by side is the only
+ * way the split is legible.
+ */
+export async function seasonTotal(
+  cropCycleId: string,
+): Promise<{ total: number; billed: number; count: number }> {
   const rows = await listExpenses(cropCycleId);
   return {
-    total: rows.reduce((sum, e) => sum + (e.amount ?? 0), 0),
+    total: totalHouseholdShare(rows),
+    billed: rows.reduce((sum, e) => sum + (e.amount ?? 0), 0),
     count: rows.length,
   };
+}
+
+/**
+ * Partner names already used, most recent first — the autocomplete behind the
+ * partner field, so a name is typed once and tapped thereafter (§2.4).
+ */
+export async function knownPartners(householdId: string): Promise<string[]> {
+  return recentValues(householdId, (row) => row.partnerName);
+}
+
+/** Products bought before — 'यूरिया', 'डीजल' — for the product autocomplete. */
+export async function knownProducts(householdId: string): Promise<string[]> {
+  return recentValues(householdId, (row) => row.product);
+}
+
+/** Distinct non-empty values from past expenses, most recently used first. */
+async function recentValues(
+  householdId: string,
+  pick: (row: LocalExpense) => string | null,
+): Promise<string[]> {
+  const rows = await db.expenses.where('householdId').equals(householdId).toArray();
+  const seen = new Map<string, string>();
+  for (const row of rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
+    const value = pick(row)?.trim();
+    if (value && !seen.has(value.toLowerCase())) seen.set(value.toLowerCase(), value);
+  }
+  return [...seen.values()];
 }
 
 export function getExpense(id: string): Promise<LocalExpense | undefined> {

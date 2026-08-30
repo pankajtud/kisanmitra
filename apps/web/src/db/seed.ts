@@ -10,6 +10,7 @@
  */
 import {
   SEED_COLD_STORE,
+  SEED_CROPS,
   SEED_EXPENSE_CATEGORIES,
   SEED_FIELDS,
   SEED_GRADES,
@@ -52,6 +53,13 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
       (await db.cropCycles.where('householdId').equals(existing.id).first());
 
     if (user && cycle) {
+      // Installs seeded before crops existed get them added rather than being
+      // left with an empty picker. Reference data only — no user data is touched.
+      if ((await db.crops.where('householdId').equals(existing.id).count()) === 0) {
+        await db.crops.bulkPut(
+          SEED_CROPS.map((crop) => ({ id: uuidv7(), householdId: existing.id, archivedAt: null, ...crop })),
+        );
+      }
       return { householdId: existing.id, userId: user.id, cropCycleId: cycle.id };
     }
   }
@@ -64,7 +72,16 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
 
   await db.transaction(
     'rw',
-    [db.households, db.users, db.cropCycles, db.grades, db.expenseCategories, db.fields, db.coldStores],
+    [
+      db.households,
+      db.users,
+      db.cropCycles,
+      db.crops,
+      db.grades,
+      db.expenseCategories,
+      db.fields,
+      db.coldStores,
+    ],
     async () => {
       await db.households.put({ id: householdId, name: '', village: null, createdAt });
 
@@ -87,6 +104,10 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
         endsOn: null,
         isCurrent: true,
       });
+
+      await db.crops.bulkPut(
+        SEED_CROPS.map((crop) => ({ id: uuidv7(), householdId, archivedAt: null, ...crop })),
+      );
 
       await db.grades.bulkPut(
         SEED_GRADES.map((g) => ({ id: uuidv7(), householdId, photoUrl: null, ...g })),

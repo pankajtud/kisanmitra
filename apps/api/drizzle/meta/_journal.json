@@ -15,6 +15,20 @@
       "when": 1788087872064,
       "tag": "0001_expenses_receipt_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788095813973,
+      "tag": "0002_expense_cost_sharing",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788096763254,
+      "tag": "0003_crops_and_produce_sales",
+      "breakpoints": true
     }
   ]
 }

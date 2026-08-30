@@ -9,3 +9,5 @@ export * from './domain/dates.js';
 export * from './domain/ids.js';
 export * from './domain/lot.js';
 export * from './domain/money.js';
+export * from './domain/sharing.js';
+export * from './domain/stock.js';

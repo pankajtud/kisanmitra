@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App.js';
 import { db } from '../db/db.js';
-import { listExpenses } from '../db/expenses.js';
+import { listExpenses, seasonTotal } from '../db/expenses.js';
 import '../i18n/index.js';
 
 async function enterAmount(user: ReturnType<typeof userEvent.setup>, digits: string) {
@@ -204,5 +204,117 @@ describe('reference data', () => {
     const household = await db.households.toCollection().first();
     // UUIDv7, generated on this device (§7).
     expect(household!.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-/);
+  });
+});
+
+describe('sharing an expense with a partner', () => {
+  it('records the partner and counts only the household share in the season total', async () => {
+    const user = userEvent.setup();
+    await openManualEntry(user);
+
+    await enterAmount(user, '4500');
+    await user.click(screen.getByRole('button', { name: 'बीज' }));
+
+    await user.click(screen.getByRole('button', { name: 'साझेदार के साथ' }));
+    await user.type(await screen.findByLabelText(/साझेदार का नाम/), 'राम सिंह');
+    // One tap for the common even split, rather than mental arithmetic.
+    await user.click(screen.getByRole('button', { name: 'आधा-आधा' }));
+    await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
+
+    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+
+    const cycle = await db.cropCycles.toCollection().first();
+    const rows = await listExpenses(cycle!.id);
+    expect(rows[0]!.amount).toBe(4500);
+    expect(rows[0]!.partnerName).toBe('राम सिंह');
+    expect(rows[0]!.partnerShare).toBe(2250);
+
+    // The season total is the household's own cost, not the billed amount.
+    const summary = await seasonTotal(cycle!.id);
+    expect(summary.total).toBe(2250);
+    expect(summary.billed).toBe(4500);
+  });
+
+  it('refuses a share larger than the bill, which would make the cost negative', async () => {
+    const user = userEvent.setup();
+    await openManualEntry(user);
+
+    await enterAmount(user, '1000');
+    await user.click(screen.getByRole('button', { name: 'खाद' }));
+    await user.click(screen.getByRole('button', { name: 'साझेदार के साथ' }));
+    await user.type(await screen.findByLabelText(/साझेदार का नाम/), 'श्याम');
+    await user.type(screen.getByLabelText('उनका हिस्सा'), '4000');
+    await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
+
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts.some((a) => a.textContent?.includes('हिस्सा कुल रकम से ज़्यादा'))).toBe(true);
+
+    const cycle = await db.cropCycles.toCollection().first();
+    expect(await listExpenses(cycle!.id)).toHaveLength(0);
+  });
+
+  it('will not save a share without saying who it is with', async () => {
+    const user = userEvent.setup();
+    await openManualEntry(user);
+
+    await enterAmount(user, '800');
+    await user.click(screen.getByRole('button', { name: 'डीजल' }));
+    await user.click(screen.getByRole('button', { name: 'साझेदार के साथ' }));
+    await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
+
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts.some((a) => a.textContent?.includes('साझेदार का नाम भरें'))).toBe(true);
+  });
+
+  it('leaves an unshared expense whole', async () => {
+    const user = userEvent.setup();
+    await openManualEntry(user);
+
+    await enterAmount(user, '600');
+    await user.click(screen.getByRole('button', { name: 'मजदूरी' }));
+    await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
+
+    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    const cycle = await db.cropCycles.toCollection().first();
+    const rows = await listExpenses(cycle!.id);
+    expect(rows[0]!.partnerName).toBeNull();
+    expect(rows[0]!.partnerShare).toBeNull();
+    expect((await seasonTotal(cycle!.id)).total).toBe(600);
+  });
+});
+
+describe('what an expense was for', () => {
+  it('records the crop, the product and how much of it', async () => {
+    const user = userEvent.setup();
+    await openManualEntry(user);
+
+    await enterAmount(user, '3000');
+    await user.click(screen.getByRole('button', { name: 'डीजल' }));
+    await user.click(screen.getByRole('button', { name: 'आलू' }));
+    await user.type(screen.getByLabelText(/क्या खरीदा\?/), 'डीजल');
+    await user.type(screen.getByLabelText(/कितना\?/), '60');
+    await user.click(screen.getByRole('button', { name: 'लीटर' }));
+    await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
+
+    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    const cycle = await db.cropCycles.toCollection().first();
+    const rows = await listExpenses(cycle!.id);
+    expect(rows[0]!.product).toBe('डीजल');
+    expect(rows[0]!.quantity).toBe(60);
+    expect(rows[0]!.unit).toBe('लीटर');
+    expect(rows[0]!.cropId).not.toBeNull();
+  });
+
+  it('seeds the crops the household actually grows, not just potato', async () => {
+    render(<App />);
+    await screen.findByRole('button', { name: 'बिना फोटो के खर्च जोड़ें' });
+    await waitFor(async () => {
+      expect(await db.crops.count()).toBe(6);
+    });
+    const names = (await db.crops.toArray()).map((c) => c.nameHi);
+    expect(names).toContain('आलू');
+    expect(names).toContain('गेहूं');
+    // Only potato is graded into cold-storage lots.
+    expect((await db.crops.toArray()).filter((c) => c.usesColdStorage)).toHaveLength(1);
   });
 });

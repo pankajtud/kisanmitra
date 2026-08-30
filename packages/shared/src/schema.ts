@@ -78,6 +78,27 @@ export const grades = pgTable(
   (t) => [unique('grades_household_code_key').on(t.householdId, t.code)],
 );
 
+/**
+ * What the household grows and sells. Potato is one of several — wheat,
+ * mustard, peas — so nothing downstream may assume it (CLAUDE.md §1).
+ *
+ * Seeded with the crops this household actually farms, and editable.
+ */
+export const crops = pgTable('crops', {
+  id: uuid('id').primaryKey(),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id),
+  nameHi: text('name_hi').notNull(), // 'आलू'
+  nameEn: text('name_en').notNull(), // 'Potato'
+  /** The unit this crop is normally measured in: 'बोरा', 'कुंतल', 'किलो'. */
+  defaultUnit: text('default_unit'),
+  /** Only potato goes into cold storage as graded lots; wheat is sold straight off the field. */
+  usesColdStorage: boolean('uses_cold_storage').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+});
+
 export const coldStores = pgTable('cold_stores', {
   id: uuid('id').primaryKey(),
   householdId: uuid('household_id')
@@ -98,6 +119,7 @@ export const lots = pgTable('lots', {
     .notNull()
     .references(() => cropCycles.id),
   coldStoreId: uuid('cold_store_id').references(() => coldStores.id),
+  cropId: uuid('crop_id').references(() => crops.id),
   /** Opaque text, exactly as written on paper ('91/251'). Derive nothing from it — CLAUDE.md §15.1. */
   lotNo: text('lot_no').notNull(),
   serialNo: integer('serial_no'), // S. NO. in the paper register
@@ -137,14 +159,30 @@ export const sales = pgTable('sales', {
   householdId: uuid('household_id')
     .notNull()
     .references(() => households.id),
-  lotId: uuid('lot_id')
-    .notNull()
-    .references(() => lots.id),
+  cropCycleId: uuid('crop_cycle_id').references(() => cropCycles.id),
+  /**
+   * Null for anything not sold out of cold storage. Wheat and mustard go
+   * straight from the field to the buyer and never become a lot, so a sale
+   * cannot require one.
+   */
+  lotId: uuid('lot_id').references(() => lots.id),
+  cropId: uuid('crop_id').references(() => crops.id),
+  fieldId: uuid('field_id').references(() => fields.id),
   soldOn: date('sold_on').notNull(),
   buyer: text('buyer'),
+  /** Quantity for a non-lot sale — 12 कुंतल of wheat. Lot sales count packets per grade instead. */
+  quantity: numeric('quantity', { precision: 12, scale: 3 }),
+  unit: text('unit'),
   ratePerPacket: numeric('rate_per_packet', { precision: 10, scale: 2 }),
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }),
   notes: text('notes'),
+
+  /**
+   * Income sharing, mirroring expenses. A crop grown in partnership splits both
+   * ways: the household's own income is `total_amount - partner_share`.
+   */
+  partnerName: text('partner_name'),
+  partnerShare: numeric('partner_share', { precision: 12, scale: 2 }),
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -225,6 +263,32 @@ export const expenses = pgTable('expenses', {
   notes: text('notes'),
   receiptId: uuid('receipt_id').references(() => receipts.id),
   entryMethod: text('entry_method').notNull(), // 'photo' | 'manual' | 'voice' | 'whatsapp'
+
+  /**
+   * Cost sharing. Joint costs — a hired tractor, a pump, a truck — are split
+   * with a partner, and only the household's own portion is its cost.
+   *
+   * Free text with autocomplete over past values, the same treatment as
+   * `variety` (CLAUDE.md §5). A partner is a name, not an account: they do not
+   * use the app.
+   */
+  partnerName: text('partner_name'),
+  /**
+   * The partner's portion in rupees, not a percentage — receipts are split by
+   * amount and the percentage is derived for display. Null means the whole
+   * expense is the household's own.
+   *
+   * `householdShare = amount - coalesce(partner_share, 0)`, which is what the
+   * season total and M7's cost-per-unit must both use.
+   */
+  partnerShare: numeric('partner_share', { precision: 12, scale: 2 }),
+
+  /** Which crop the money was spent on. Null = the whole farm. */
+  cropId: uuid('crop_id').references(() => crops.id),
+  /** What was actually bought: 'यूरिया', 'DAP'. Free text with autocomplete. */
+  product: text('product'),
+  quantity: numeric('quantity', { precision: 12, scale: 3 }),
+  unit: text('unit'),
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

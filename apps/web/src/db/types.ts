@@ -9,9 +9,14 @@ import type {
   Expense,
   ExpenseCategory,
   Field,
+  Crop,
   Grade,
   Household,
+  Lot,
+  LotGrade,
   Receipt,
+  Sale,
+  SaleGrade,
   User,
 } from '@kisanmitra/shared';
 
@@ -40,10 +45,40 @@ type Stringify<T> = {
   [K in keyof T]: T[K] extends Date ? string : T[K] extends Date | null ? string | null : T[K];
 };
 
-export type LocalExpense = Local<Stringify<Omit<Expense, 'amount'>>> & {
+export type LocalExpense = Local<
+  Stringify<Omit<Expense, 'amount' | 'partnerShare' | 'quantity'>>
+> & {
   /** null while the expense is still a draft. */
   amount: number | null;
+  /** The partner's portion in rupees. null when the cost is not shared. */
+  partnerShare: number | null;
+  /** How much was bought — 60 litres of diesel, 2 sacks of urea. */
+  quantity: number | null;
   status: ExpenseStatus;
+};
+
+export type LocalCrop = Stringify<Crop>;
+
+/* ------------------------------------------------------------------- stock */
+
+export type LocalLot = Local<Stringify<Lot>>;
+/** Packets per grade in a lot. Scoped through its parent lot, not household_id. */
+export type LocalLotGrade = LotGrade;
+
+export type LocalSale = Local<
+  Stringify<Omit<Sale, 'ratePerPacket' | 'totalAmount' | 'quantity' | 'partnerShare'>>
+> & {
+  ratePerPacket: number | null;
+  totalAmount: number | null;
+  /** Quantity for a sale that never went into storage — 12 कुंतल of wheat. */
+  quantity: number | null;
+  /** The partner's cut of the income, mirroring expenses. */
+  partnerShare: number | null;
+};
+
+export type LocalSaleGrade = Omit<SaleGrade, 'ratePerPacket'> & {
+  /** Grades often fetch different rates in the same sale. */
+  ratePerPacket: number | null;
 };
 
 export type LocalReceipt = Local<Stringify<Receipt>>;

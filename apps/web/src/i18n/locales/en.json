@@ -10,7 +10,16 @@
     "seasonLabel": "Spent this season",
     "seeAll": "See the full record",
     "entryCount_one": "{{count}} expense",
-    "entryCount_other": "{{count}} expenses"
+    "entryCount_other": "{{count}} expenses",
+    "addStock": "Add stock",
+    "stockLabel": "In cold storage",
+    "packetsLeft_one": "{{count}} packet left",
+    "packetsLeft_other": "{{count}} packets left",
+    "noStock": "No lots yet",
+    "seeStock": "See stock",
+    "settings": "Settings",
+    "addSale": "Record a sale",
+    "incomeLabel": "Earned this season"
   },
   "expense": {
     "newTitle": "New expense",
@@ -32,7 +41,23 @@
     "categoryMissing": "Choose what the expense was for",
     "photoAlt": "Photo of the receipt",
     "retakePhoto": "Take another photo",
-    "photoSaved": "Photo is saved on this phone"
+    "photoSaved": "Photo is saved on this phone",
+    "sharedLabel": "Was this cost shared?",
+    "notShared": "All mine",
+    "shared": "Shared with a partner",
+    "partnerNameLabel": "Partner's name",
+    "partnerNamePlaceholder": "e.g. Ram Singh",
+    "partnerShareLabel": "Their share",
+    "half": "Split in half",
+    "myShare": "Your cost",
+    "theirShare": "Their share",
+    "shareTooBig": "A share cannot be more than the total",
+    "partnerNameMissing": "Fill in the partner's name",
+    "cropLabel": "For which crop?",
+    "cropAll": "Whole farm",
+    "productLabel": "What did you buy?",
+    "productPlaceholder": "e.g. urea, diesel",
+    "quantityLabel": "How much?"
   },
   "list": {
     "title": "This season's record",
@@ -41,7 +66,9 @@
     "emptyAction": "Press the button below to photograph your first receipt.",
     "today": "Today",
     "yesterday": "Yesterday",
-    "noCategory": "No category"
+    "noCategory": "No category",
+    "billed": "Billed on receipts",
+    "yoursOnly": "This counts only your share"
   },
   "detail": {
     "title": "Expense",
@@ -69,7 +96,10 @@
     "backspace": "Delete one digit",
     "clear": "Clear"
   },
-  "date": { "today": "Today", "pick": "Pick a date" },
+  "date": {
+    "today": "Today",
+    "pick": "Pick a date"
+  },
   "common": {
     "back": "Back",
     "cancel": "Cancel",
@@ -81,5 +111,96 @@
     "photoFailed": "Couldn't take the photo. Try again.",
     "saveFailed": "Not saved. Press again.",
     "notFound": "That expense wasn't found."
+  },
+  "stock": {
+    "title": "Cold storage",
+    "newLot": "New lot",
+    "editLot": "Change lot",
+    "lotNoLabel": "Lot number",
+    "lotNoPlaceholder": "e.g. 91/251",
+    "lotNoMissing": "Fill in the lot number",
+    "serialLabel": "S. No.",
+    "storedOnLabel": "Stored when?",
+    "coldStoreLabel": "Which cold store?",
+    "roomRackLabel": "Room / rack",
+    "roomRackPlaceholder": "e.g. 2/14",
+    "varietyLabel": "Variety",
+    "varietyPlaceholder": "e.g. 37-97",
+    "gradesLabel": "How many packets, of which grade?",
+    "gradesMissing": "Fill in packets for at least one grade",
+    "saveLot": "Save lot",
+    "empty": "Nothing in cold storage yet.",
+    "emptyAction": "Press the button below to add your first lot.",
+    "stored": "Stored",
+    "sold": "Sold",
+    "remaining": "Left",
+    "allSold": "All sold",
+    "totalPackets_one": "{{count}} packet",
+    "totalPackets_other": "{{count}} packets",
+    "deleteQuestion": "Remove this lot?",
+    "deleteConfirm": "Yes, remove it",
+    "hasSales": "{{count}} sales are recorded against this lot"
+  },
+  "sale": {
+    "title": "Sale",
+    "newSale": "Record a sale",
+    "editSale": "Change sale",
+    "soldOnLabel": "Sold when?",
+    "buyerLabel": "Who bought it?",
+    "buyerPlaceholder": "Trader's name",
+    "linesLabel": "How many packets, at what rate?",
+    "rateLabel": "Rate per packet",
+    "packetsLabel": "Packets",
+    "total": "Total",
+    "save": "Save sale",
+    "none": "No sales yet",
+    "count_one": "{{count}} sale",
+    "count_other": "{{count}} sales",
+    "packetsMissing": "Fill in at least one packet",
+    "tooMany": "There aren't that many left — only {{count}} remain",
+    "revenue": "Total sales",
+    "deleteQuestion": "Remove this sale?",
+    "cropLabel": "What did you sell?",
+    "fromStorage": "From cold storage",
+    "fromField": "Straight from the field",
+    "quantityLabel": "How much sold?",
+    "ratePerUnit": "Rate per {{unit}}",
+    "cropMissing": "Choose a crop",
+    "quantityMissing": "Fill in the quantity",
+    "myIncome": "Your income",
+    "sharedIncome": "Is the income shared?",
+    "title2": "Sale",
+    "seasonTitle": "This season's sales",
+    "empty": "No sales yet.",
+    "emptyAction": "Press the button below to record your first sale."
+  },
+  "fields": {
+    "title": "Fields",
+    "add": "Add a field",
+    "namePlaceholder": "Field name",
+    "rename": "Rename",
+    "archive": "Remove",
+    "restore": "Restore",
+    "archived": "Removed fields",
+    "inUse": "Used in {{expenses}} expenses, {{lots}} lots",
+    "archiveQuestion": "Remove this field? Old records stay as they are.",
+    "empty": "No fields yet."
+  },
+  "settings": {
+    "title": "Settings",
+    "fields": "Fields",
+    "language": "Language",
+    "about": "About this app"
+  },
+  "stepper": {
+    "more": "One more",
+    "less": "One fewer"
+  },
+  "crops": {
+    "title": "Crops",
+    "add": "Add a crop",
+    "namePlaceholder": "Crop name",
+    "unitLabel": "Unit",
+    "coldStorage": "Goes into cold storage"
   }
 }

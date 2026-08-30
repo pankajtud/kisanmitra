@@ -75,6 +75,46 @@ constraint. It costs nothing and keeps the documented shape. If the cycle was
 meant to exist — e.g. `receipts.expense_id` was intended too — that changes the
 schema and is worth settling before M3.
 
+### Q14. CLAUDE.md §6 no longer matches the schema — ANSWERED, needs writing up
+
+Decisions taken in conversation on 2026-08-30, all implemented:
+
+- **Sales are of produce, not only potato.** `sales.lot_id` is now **nullable**.
+  §6 declares it `not null`, which made a wheat sale impossible to record.
+  Cold storage is one route a sale can take, not the only one.
+- **New `crops` table.** Reference data seeded with आलू, गेहूं, सरसों, धान, मटर,
+  गन्ना, each with a default unit and a `uses_cold_storage` flag. Only potato is
+  graded into lots.
+- **Expenses gained `crop_id`, `product`, `quantity`, `unit`** — "₹4,500, diesel,
+  60 litres, for आलू" rather than just "₹4,500, diesel".
+- **Cost *and* income sharing.** `partner_name` + `partner_share` on both
+  `expenses` and `sales`. Per transaction, asked each time — not inherited from
+  a field or crop.
+
+→ **§6's SQL block is now out of date.** It is the spec, so it should be
+updated to match rather than left to drift. Migrations 0002 and 0003 are the
+current truth.
+
+### Q15. §16 says no multi-crop before M7, and §13 puts stock at M5
+
+Both were overruled deliberately: the farm grows and sells more than potato, and
+modelling it as potato-only was wrong rather than merely early. Recorded because
+the file says to flag conflicts rather than silently reorder.
+
+The cost of it stands: no farmer has used M1 yet, so stock and sales were
+designed without that feedback.
+
+### Q16. Are units per-household reference data or a fixed list?
+
+§1 says units are configurable reference data. They are currently stored as
+plain text on the row, offered as a seeded tap-list (बोरा, कुंतल, किलो, लीटर,
+बोरी, ट्रॉली, नग) plus whatever the user types.
+
+→ **Assumed** this is enough. A `units` table would be the fuller reading of §1,
+but nothing yet needs to aggregate across units, and it would be a table to
+manage for no gain. Revisit at M7, where converting between units to get a
+cost-per-unit is a real question.
+
 ### Q13. What order do grades go in inside the composite notation?
 
 The §5 example reads `21H+83G+7K+10M` — not the grade sort order (M, G, H, K,

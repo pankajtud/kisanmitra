@@ -7,7 +7,13 @@ See [CLAUDE.md](CLAUDE.md) for the product rules — it is the spec, not a summa
 of one. See [docs/open-questions.md](docs/open-questions.md) for what is still
 unknown and what was assumed in the meantime.
 
-**Shipped so far: M0 (scaffold) and M1 (expenses offline).**
+**Shipped so far:** M0 (scaffold), M1 (expenses offline), the stock register
+and sales (M5–M6, brought forward), cost and income sharing with partners, and
+editable field names.
+
+Sales are of *produce* — potato out of cold storage, wheat and mustard straight
+off the field. See [docs/open-questions.md](docs/open-questions.md) Q14–Q16 for
+what that changed and what CLAUDE.md still says.
 
 ## Layout
 
@@ -45,10 +51,20 @@ npm run typecheck
 npm run build     # prints gzipped bundle sizes — the 200 KB budget is §2.5
 ```
 
-## What M1 does
+## What it does
 
-Photograph a receipt or enter an expense by hand; see the season's total and its
-register. All of it on the phone, none of it needing a network.
+Photograph a receipt or enter an expense by hand, recording what was bought, how
+much of it, for which crop and field, and whether a partner shared the cost.
+Keep the cold-storage register — lots, grades, and the `121(10M+83G+21H)`
+notation from the paper book. Record sales in instalments against a lot, or
+straight off the field for anything that never goes into storage. See what the
+season cost and earned.
+
+All of it on the phone, none of it needing a network.
+
+Every money figure shown is the household's **own share**: a joint tractor bill
+or a partnership crop counts only their half. The billed figure sits alongside
+so the two are never confused.
 
 The photo is downscaled to 1600 px / q0.8 and written to IndexedDB before
 anything else happens, along with a draft expense — so an interrupted capture

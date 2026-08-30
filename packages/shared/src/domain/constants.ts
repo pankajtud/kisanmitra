@@ -35,3 +35,25 @@ export const SEED_FIELDS = [
 ] as const;
 
 export const SEED_COLD_STORE = 'G.L. Cold Storage, Chitaura';
+
+/**
+ * What the household grows. Potato is one component, not the whole business —
+ * wheat and mustard are sold straight off the field and never see a cold store
+ * (CLAUDE.md §1).
+ *
+ * Only potato is graded into lots; everything else sells by weight.
+ */
+export const SEED_CROPS = [
+  { nameHi: 'आलू', nameEn: 'Potato', defaultUnit: 'बोरा', usesColdStorage: true, sortOrder: 0 },
+  { nameHi: 'गेहूं', nameEn: 'Wheat', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 1 },
+  { nameHi: 'सरसों', nameEn: 'Mustard', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 2 },
+  { nameHi: 'धान', nameEn: 'Paddy', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 3 },
+  { nameHi: 'मटर', nameEn: 'Peas', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 4 },
+  { nameHi: 'गन्ना', nameEn: 'Sugarcane', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 5 },
+] as const;
+
+/**
+ * Units offered as taps. Stored as plain text on the row, so a household can
+ * type anything these do not cover — units are reference data, not an enum (§1).
+ */
+export const SEED_UNITS = ['बोरा', 'कुंतल', 'किलो', 'लीटर', 'बोरी', 'ट्रॉली', 'नग'] as const;

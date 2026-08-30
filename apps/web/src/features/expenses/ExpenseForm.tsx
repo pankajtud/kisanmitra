@@ -1,4 +1,5 @@
 import { parseAmount, today } from '@kisanmitra/shared';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AmountField } from '../../components/AmountField.js';
@@ -7,10 +8,13 @@ import { DateField } from '../../components/DateField.js';
 import { PhotoPreview } from '../../components/PhotoPreview.js';
 import { Screen } from '../../components/Screen.js';
 import { TextField } from '../../components/TextField.js';
-import { getExpense, saveExpense } from '../../db/expenses.js';
+import { PartnerShareField } from '../../components/PartnerShareField.js';
+import { QuantityField } from '../../components/QuantityField.js';
+import { SuggestField } from '../../components/SuggestField.js';
+import { getExpense, knownPartners, knownProducts, saveExpense } from '../../db/expenses.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalExpense } from '../../db/types.js';
-import { useCategories, useFields } from '../../hooks/useAppData.js';
+import { useCategories, useCrops, useFields } from '../../hooks/useAppData.js';
 import { useRefLabel } from '../../lib/labels.js';
 
 /**
@@ -36,6 +40,9 @@ export function ExpenseForm({
   const { t } = useTranslation();
   const categories = useCategories(ctx.householdId);
   const refLabel = useRefLabel();
+  const crops = useCrops(ctx.householdId);
+  const partners = useLiveQuery(() => knownPartners(ctx.householdId), [ctx.householdId], []);
+  const products = useLiveQuery(() => knownProducts(ctx.householdId), [ctx.householdId], []);
   const fields = useFields(ctx.householdId);
 
   const [loaded, setLoaded] = useState<LocalExpense | null | undefined>(expenseId ? undefined : null);
@@ -45,7 +52,20 @@ export function ExpenseForm({
   const [fieldId, setFieldId] = useState<string | null>(null);
   const [vendor, setVendor] = useState('');
   const [notes, setNotes] = useState('');
-  const [errors, setErrors] = useState<{ amount?: string; category?: string; save?: string }>({});
+  const [shared, setShared] = useState(false);
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerShare, setPartnerShare] = useState('');
+  const [cropId, setCropId] = useState<string | null>(null);
+  const [product, setProduct] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [unit, setUnit] = useState('');
+  const [errors, setErrors] = useState<{
+    amount?: string;
+    category?: string;
+    partnerName?: string;
+    partnerShare?: string;
+    save?: string;
+  }>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -61,6 +81,13 @@ export function ExpenseForm({
       setFieldId(row.fieldId);
       setVendor(row.vendor ?? '');
       setNotes(row.notes ?? '');
+      setShared(row.partnerName !== null || row.partnerShare !== null);
+      setPartnerName(row.partnerName ?? '');
+      setPartnerShare(row.partnerShare === null ? '' : String(row.partnerShare));
+      setCropId(row.cropId);
+      setProduct(row.product ?? '');
+      setQuantity(row.quantity === null ? '' : String(row.quantity));
+      setUnit(row.unit ?? '');
     });
     return () => {
       cancelled = true;
@@ -90,9 +117,21 @@ export function ExpenseForm({
 
   const handleSave = async () => {
     const parsed = parseAmount(amount);
+    const share = parseAmount(partnerShare);
+    const isShared = shared;
+
     const next: typeof errors = {};
     if (parsed === null || parsed === 0) next.amount = t('expense.amountMissing');
     if (!categoryId) next.category = t('expense.categoryMissing');
+
+    if (isShared) {
+      if (partnerName.trim() === '') next.partnerName = t('expense.partnerNameMissing');
+      // A share bigger than the bill would make the household's own cost
+      // negative, which silently understates the season total.
+      if (parsed !== null && share !== null && share > parsed) {
+        next.partnerShare = t('expense.shareTooBig');
+      }
+    }
 
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -108,6 +147,12 @@ export function ExpenseForm({
           fieldId,
           vendor: vendor.trim() || null,
           notes: notes.trim() || null,
+          partnerName: isShared ? partnerName.trim() : null,
+          partnerShare: isShared ? (share ?? 0) : null,
+          cropId,
+          product: product.trim() || null,
+          quantity: quantity === '' ? null : Number(quantity),
+          unit: unit.trim() || null,
           entryMethod: receiptId ? 'photo' : 'manual',
           receiptId,
         },
@@ -160,11 +205,58 @@ export function ExpenseForm({
         />
 
         <ChoiceGrid
+          legend={t('expense.cropLabel')}
+          choices={crops.map((c) => ({ id: c.id, label: refLabel({ labelHi: c.nameHi, labelEn: c.nameEn }) }))}
+          value={cropId}
+          onChange={(next) => {
+            setCropId(next);
+            // Adopt the crop's usual unit, unless the user already chose one.
+            const crop = crops.find((c) => c.id === next);
+            if (crop?.defaultUnit && unit === '') setUnit(crop.defaultUnit);
+          }}
+          emptyChoiceLabel={t('expense.cropAll')}
+        />
+
+        <SuggestField
+          label={t('expense.productLabel')}
+          value={product}
+          onChange={setProduct}
+          suggestions={products}
+          placeholder={t('expense.productPlaceholder')}
+        />
+
+        <QuantityField
+          label={t('expense.quantityLabel')}
+          quantity={quantity}
+          unit={unit}
+          onQuantityChange={setQuantity}
+          onUnitChange={setUnit}
+          suggestedUnit={crops.find((c) => c.id === cropId)?.defaultUnit}
+        />
+
+        <ChoiceGrid
           legend={t('expense.fieldLabel')}
           choices={fields.map((f) => ({ id: f.id, label: f.name }))}
           value={fieldId}
           onChange={setFieldId}
           emptyChoiceLabel={t('expense.fieldAll')}
+        />
+
+        <PartnerShareField
+          amount={parseAmount(amount)}
+          partnerName={partnerName}
+          partnerShare={partnerShare}
+          onPartnerNameChange={setPartnerName}
+          onPartnerShareChange={setPartnerShare}
+          shared={shared}
+          onSharedChange={setShared}
+          onClear={() => {
+            setShared(false);
+            setPartnerName('');
+            setPartnerShare('');
+          }}
+          knownPartners={partners}
+          errors={{ name: errors.partnerName, share: errors.partnerShare }}
         />
 
         <TextField
