@@ -4,10 +4,14 @@
 // PWA as pure static files, which is all this app needs: everything runs on the
 // phone and there is no server call anywhere in the client (CLAUDE.md §2.1).
 //
-// Wrangler must be pointed at this file explicitly from the repo root, because
-// the root is an npm workspace and wrangler will not guess which app to deploy:
+// Wrangler refuses to run at an npm workspace root — it will not guess which
+// app in the monorepo to deploy — so it has to run with this directory as its
+// working directory. `npm run -w` does that from anywhere in the repo:
 //
-//   npx wrangler deploy --config apps/web/wrangler.jsonc
+//   npm run deploy -w @kisanmitra/web
+//
+// Passing `--config apps/web/wrangler.jsonc` from the root also works, but the
+// script is what the deploy is configured to call, so it is the tested path.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kisanmitra",
