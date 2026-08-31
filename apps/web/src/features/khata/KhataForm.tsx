@@ -1,6 +1,7 @@
 import {
   expectedEnd,
   formatRegisterDate,
+  khataTitle,
   partnersAddUp,
   seasonLabel,
   today,
@@ -22,7 +23,7 @@ import {
 } from '../../db/khata.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalKhata } from '../../db/types.js';
-import { useCrops } from '../../hooks/useAppData.js';
+import { useCrops, useFields } from '../../hooks/useAppData.js';
 import { useRefLabel } from '../../lib/labels.js';
 
 /**
@@ -47,17 +48,20 @@ export function KhataForm({
   const { t } = useTranslation();
   const refLabel = useRefLabel();
   const crops = useCrops(ctx.householdId);
+  const fields = useFields(ctx.householdId);
   const suggestions = useLiveQuery(() => knownPartnerNames(ctx.householdId), [ctx.householdId], []);
 
   const [loaded, setLoaded] = useState<LocalKhata | null | undefined>(khataId ? undefined : null);
   const [name, setName] = useState('');
   const [cropId, setCropId] = useState<string | null>(null);
+  const [fieldId, setFieldId] = useState<string | null>(null);
   const [openedOn, setOpenedOn] = useState(today());
   const [season, setSeason] = useState(seasonLabel(today()));
   const [duration, setDuration] = useState('');
   const [newCrop, setNewCrop] = useState('');
   const [partners, setPartners] = useState<PartnerInput[]>([]);
   const [seasonEdited, setSeasonEdited] = useState(false);
+  const [nameEdited, setNameEdited] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   useEffect(() => {
@@ -69,7 +73,11 @@ export function KhataForm({
       setLoaded(khata ?? null);
       if (!khata) return;
       setName(khata.name);
+      // An existing khata keeps the name it has; composing over it would rename
+      // a record the user has been looking at all season.
+      setNameEdited(true);
       setCropId(khata.cropId);
+      setFieldId(khata.fieldId);
       setOpenedOn(khata.openedOn);
       setSeason(khata.season ?? seasonLabel(khata.openedOn));
       setDuration(khata.durationMonths === null ? '' : String(khata.durationMonths));
@@ -110,12 +118,23 @@ export function KhataForm({
   const setPartner = (index: number, patch: Partial<PartnerInput>) =>
     setPartners((current) => current.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
+  /**
+   * The title is crop - partner - year, composed from the parts rather than
+   * typed. A farmer running four khatas tells them apart by exactly these three
+   * things, so it stays in step until they rename it by hand.
+   */
+  const suggestedTitle = khataTitle({
+    crop: crops.find((c) => c.id === cropId)?.nameHi,
+    partners,
+    season,
+  });
+  const title = nameEdited ? name : suggestedTitle;
+
   /** Selecting a crop fills in whatever the khata has not been told yet. */
   const applyCrop = (next: string | null) => {
     setCropId(next);
     const crop = crops.find((c) => c.id === next);
     if (!crop) return;
-    if (name.trim() === '') setName(`${crop.nameHi} ${season}`.trim());
     if (duration === '' && crop.defaultDurationMonths) {
       setDuration(String(crop.defaultDurationMonths));
     }
@@ -131,7 +150,7 @@ export function KhataForm({
 
   const handleSave = async () => {
     const next: Record<string, string | undefined> = {};
-    if (name.trim() === '') next.name = t('khata.nameMissing');
+    if (title.trim() === '') next.name = t('khata.nameMissing');
     if (partners.some((p) => !p.isSelf && p.name.trim() === '')) {
       next.partners = t('khata.partnerNameMissing');
     }
@@ -143,8 +162,9 @@ export function KhataForm({
     const id = await saveKhata(
       ctx,
       {
-        name: name.trim(),
+        name: title.trim(),
         cropId,
+        fieldId,
         season: season.trim() || null,
         openedOn,
         durationMonths: duration === '' ? null : Number(duration),
@@ -177,16 +197,6 @@ export function KhataForm({
       }
     >
       <div className="flex flex-col gap-6 pb-4">
-        <SuggestField
-          label={t('khata.nameLabel')}
-          value={name}
-          onChange={setName}
-          suggestions={[]}
-          placeholder={t('khata.namePlaceholder')}
-          error={errors.name}
-          required
-        />
-
         <div>
           <ChoiceGrid
             legend={t('expense.cropLabel')}
@@ -220,6 +230,14 @@ export function KhataForm({
             </button>
           </div>
         </div>
+
+        <ChoiceGrid
+          legend={t('expense.fieldLabel')}
+          choices={fields.map((f) => ({ id: f.id, label: f.name }))}
+          value={fieldId}
+          onChange={setFieldId}
+          emptyChoiceLabel={t('expense.fieldAll')}
+        />
 
         <DateField
           value={openedOn}
@@ -363,6 +381,21 @@ export function KhataForm({
             {t('khata.addPartner')}
           </button>
         </fieldset>
+
+        {/* Composed from the three fields above; editable if the household
+            calls this venture something else. */}
+        <SuggestField
+          label={t('khata.nameLabel')}
+          value={title}
+          onChange={(next) => {
+            setName(next);
+            setNameEdited(true);
+          }}
+          suggestions={[]}
+          placeholder={t('khata.namePlaceholder')}
+          error={errors.name}
+          required
+        />
       </div>
     </Screen>
   );

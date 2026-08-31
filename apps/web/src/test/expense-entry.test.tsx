@@ -331,11 +331,14 @@ describe('what an expense was for', () => {
     await renderUnlocked(user);
     await screen.findByRole('button', { name: 'बिना फोटो के खर्च जोड़ें' });
     await waitFor(async () => {
-      expect(await db.crops.count()).toBe(6);
+      expect(await db.crops.count()).toBe(12);
     });
     const names = (await db.crops.toArray()).map((c) => c.nameHi);
     expect(names).toContain('आलू');
-    expect(names).toContain('गेहूं');
+    expect(names).toContain('गेहूँ');
+    expect(names).toContain('शिमला मिर्च');
+    // The crops dropped from the seed are gone from the picker.
+    expect(names).not.toContain('सरसों');
     // Only potato is graded into cold-storage lots.
     expect((await db.crops.toArray()).filter((c) => c.usesColdStorage)).toHaveLength(1);
   });

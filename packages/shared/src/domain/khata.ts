@@ -157,3 +157,34 @@ export function partnersAddUp(partners: readonly Partner[]): boolean {
   if (partners.length === 0) return true;
   return Math.abs(partners.reduce((sum, p) => sum + num(p.sharePercent), 0) - 100) < 0.01;
 }
+
+/**
+ * A khata's name: crop, then who shares it, then the season —
+ * `आलू - राम सिंह - 2025-26`.
+ *
+ * Built from the parts rather than typed, because a farmer running four khatas
+ * needs to tell them apart at a glance in a list, and the three things that
+ * distinguish them are exactly these. Parts that are not known yet are left
+ * out rather than shown as blanks, so a half-filled form still reads sensibly.
+ *
+ * The household's own row is never named: every khata includes them, so it
+ * carries no information.
+ */
+export function khataTitle({
+  crop,
+  partners,
+  season,
+}: {
+  crop?: string | null;
+  partners?: readonly Partner[];
+  season?: string | null;
+}): string {
+  const others = (partners ?? [])
+    .filter((partner) => !partner.isSelf)
+    .map((partner) => partner.name.trim())
+    .filter(Boolean);
+
+  return [crop?.trim(), others.join(', ') || null, season?.trim()]
+    .filter((part): part is string => Boolean(part))
+    .join(' - ');
+}

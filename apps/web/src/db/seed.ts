@@ -17,6 +17,7 @@ import {
   uuidv7,
 } from '@kisanmitra/shared';
 import { db } from './db.js';
+import { reconcileCrops } from './crops.js';
 
 /**
  * The potato year in this district runs roughly October to September, so a date
@@ -53,13 +54,10 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
       (await db.cropCycles.where('householdId').equals(existing.id).first());
 
     if (user && cycle) {
-      // Installs seeded before crops existed get them added rather than being
-      // left with an empty picker. Reference data only — no user data is touched.
-      if ((await db.crops.where('householdId').equals(existing.id).count()) === 0) {
-        await db.crops.bulkPut(
-          SEED_CROPS.map((crop) => ({ id: uuidv7(), householdId: existing.id, archivedAt: null, ...crop })),
-        );
-      }
+      // Reference data only — no user record is touched. New crops appear,
+      // ones dropped from the seed are archived rather than deleted so old
+      // records still resolve, and anything the household added stays.
+      await reconcileCrops(existing.id, SEED_CROPS);
       return { householdId: existing.id, userId: user.id, cropCycleId: cycle.id };
     }
   }
@@ -123,6 +121,9 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
           householdId,
           name,
           areaBigha: null,
+          latitude: null,
+          longitude: null,
+          locationAccuracyM: null,
           sortOrder,
           archivedAt: null,
         })),

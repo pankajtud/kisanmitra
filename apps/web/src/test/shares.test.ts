@@ -18,13 +18,13 @@ const SOLO = uuidv7();
 beforeEach(async () => {
   await db.khatas.bulkPut([
     {
-      id: SHARED, householdId: HOUSEHOLD, cropCycleId: null, cropId: null,
+      id: SHARED, householdId: HOUSEHOLD, cropCycleId: null, cropId: null, fieldId: null,
       name: 'आलू', season: '2025-26', openedOn: '2025-10-01', durationMonths: 5,
       status: 'open', settledOn: null, notes: null,
       createdBy: null, createdAt: '', updatedAt: '', deletedAt: null, syncState: 'pending',
     },
     {
-      id: SOLO, householdId: HOUSEHOLD, cropCycleId: null, cropId: null,
+      id: SOLO, householdId: HOUSEHOLD, cropCycleId: null, cropId: null, fieldId: null,
       name: 'गेहूं', season: '2025-26', openedOn: '2025-10-01', durationMonths: 6,
       status: 'open', settledOn: null, notes: null,
       createdBy: null, createdAt: '', updatedAt: '', deletedAt: null, syncState: 'pending',

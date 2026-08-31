@@ -80,7 +80,7 @@ describe('every navigation destination opens', () => {
 describe('khata screens', () => {
   it('opens a khata with partners and shows the settlement split', async () => {
     await saveKhata(ctx, {
-      name: 'आलू 2025-26', cropId: null, season: '2025-26', openedOn: '2025-10-01',
+      name: 'आलू 2025-26', cropId: null, fieldId: null, season: '2025-26', openedOn: '2025-10-01',
       durationMonths: 5, notes: null,
       partners: [
         { name: 'आप', sharePercent: 50, isSelf: true },
@@ -102,14 +102,14 @@ describe('khata screens', () => {
 
   it('settles a khata and makes it read-only', async () => {
     await saveKhata(ctx, {
-      name: 'गेहूं', cropId: null, season: '2025-26', openedOn: '2025-10-01',
+      name: 'गेहूँ', cropId: null, fieldId: null, season: '2025-26', openedOn: '2025-10-01',
       durationMonths: 6, notes: null, partners: [],
     });
 
     const user = userEvent.setup();
     await unlocked(user);
     await user.click(screen.getByRole('button', { name: 'खाते' }));
-    await user.click(await screen.findByRole('button', { name: /गेहूं/ }));
+    await user.click(await screen.findByRole('button', { name: /गेहूँ/ }));
 
     await user.click(await screen.findByRole('button', { name: 'हिसाब करके बंद करें' }));
     await user.click(await screen.findByRole('button', { name: 'हिसाब करके बंद करें' }));

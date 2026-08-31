@@ -39,14 +39,23 @@ async function main() {
     const crops = await db
       .select()
       .from(schema.crops)
-      .where(eq(schema.crops.householdId, householdId))
-      .limit(1);
-    if (!crops[0]) {
-      await db
-        .insert(schema.crops)
-        .values(SEED_CROPS.map((crop) => ({ id: uuidv7(), householdId, ...crop })));
-      console.log('backfilled crops');
+      .where(eq(schema.crops.householdId, householdId));
+
+    const known = new Set<string>(crops.map((c) => c.nameHi));
+    const missing = SEED_CROPS.filter((c) => !known.has(c.nameHi));
+    if (missing.length > 0) {
+      await db.insert(schema.crops).values(missing.map((crop) => ({ id: uuidv7(), householdId, ...crop })));
+      console.log(`added ${missing.length} crops`);
     }
+
+    // Crops dropped from the seed are archived, never deleted: expenses, lots
+    // and khatas point at them (CLAUDE.md §2.7).
+    const seeded = new Set<string>(SEED_CROPS.map((c) => c.nameHi));
+    const stale = crops.filter((c) => !seeded.has(c.nameHi) && c.archivedAt === null);
+    for (const crop of stale) {
+      await db.update(schema.crops).set({ archivedAt: new Date() }).where(eq(schema.crops.id, crop.id));
+    }
+    if (stale.length > 0) console.log(`archived ${stale.length} crops no longer seeded`);
 
     report(householdId, user[0]?.id ?? '(none)');
     return;

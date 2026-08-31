@@ -37,21 +37,28 @@ export const SEED_FIELDS = [
 export const SEED_COLD_STORE = 'G.L. Cold Storage, Chitaura';
 
 /**
- * What the household grows. Potato is one component, not the whole business —
- * wheat and mustard are sold straight off the field and never see a cold store
+ * What this household grows. Potato is one component, not the whole business —
+ * everything else is sold straight off the field and never sees a cold store
  * (CLAUDE.md §1).
  *
- * Only potato is graded into lots; everything else sells by weight.
+ * Durations are ASSUMPTIONS about how long each crop holds the ground; they only
+ * prefill a khata's intended length and are editable per khata. Correct them
+ * against what is actually planted — see docs/open-questions.md Q22.
  */
 export const SEED_CROPS = [
-  { nameHi: 'आलू', nameEn: 'Potato', defaultUnit: 'बोरा', usesColdStorage: true, defaultDurationMonths: 5, sortOrder: 0 },
-  { nameHi: 'गेहूं', nameEn: 'Wheat', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 6, sortOrder: 1 },
-  { nameHi: 'सरसों', nameEn: 'Mustard', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 5, sortOrder: 2 },
-  { nameHi: 'धान', nameEn: 'Paddy', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 5, sortOrder: 3 },
-  { nameHi: 'मटर', nameEn: 'Peas', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 4, sortOrder: 4 },
-  // Sugarcane sits in the ground about a year — the reason duration is a
-  // per-crop default rather than one number for the farm.
-  { nameHi: 'गन्ना', nameEn: 'Sugarcane', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 12, sortOrder: 5 },
+  { nameHi: 'देशी मिर्च', nameEn: 'Deshi Mirch', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 6, sortOrder: 0 },
+  { nameHi: 'शिमला मिर्च', nameEn: 'Shimla Mirch', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 5, sortOrder: 1 },
+  { nameHi: 'खीरा', nameEn: 'Kheera', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 3, sortOrder: 2 },
+  { nameHi: 'गोभी', nameEn: 'Gobhi', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 4, sortOrder: 3 },
+  { nameHi: 'खरबूजा', nameEn: 'Kharbooja', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 3, sortOrder: 4 },
+  { nameHi: 'तरबूज', nameEn: 'Tarbooj', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 3, sortOrder: 5 },
+  { nameHi: 'अरबी', nameEn: 'Arabi', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 6, sortOrder: 6 },
+  { nameHi: 'कशीफल', nameEn: 'Kashifal', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 4, sortOrder: 7 },
+  { nameHi: 'पेठा', nameEn: 'Petha', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 5, sortOrder: 8 },
+  // The only one that goes into cold storage as graded lots.
+  { nameHi: 'आलू', nameEn: 'Aloo', defaultUnit: 'बोरा', usesColdStorage: true, defaultDurationMonths: 5, sortOrder: 9 },
+  { nameHi: 'बाजरा', nameEn: 'Bajra', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 4, sortOrder: 10 },
+  { nameHi: 'गेहूँ', nameEn: 'Gehoon', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 6, sortOrder: 11 },
 ] as const;
 
 /**

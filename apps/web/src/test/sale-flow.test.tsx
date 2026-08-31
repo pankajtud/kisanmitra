@@ -130,7 +130,7 @@ describe('recording a sale from the sale screen', () => {
 
     await user.click(screen.getByRole('button', { name: 'बिक्री' }));
     await user.click(await screen.findByRole('button', { name: 'बिक्री दर्ज करें' }));
-    await user.click(await screen.findByRole('button', { name: 'गेहूं' }));
+    await user.click(await screen.findByRole('button', { name: 'गेहूँ' }));
 
     // Wheat goes straight from the field, so it drops through to quantity.
     expect(screen.queryByRole('button', { name: 'हां' })).not.toBeInTheDocument();
@@ -143,7 +143,7 @@ describe('recording a sale from the sale screen', () => {
 
     await user.click(screen.getByRole('button', { name: 'बिक्री' }));
     await user.click(await screen.findByRole('button', { name: 'बिक्री दर्ज करें' }));
-    await user.click(await screen.findByRole('button', { name: 'सरसों' }));
+    await user.click(await screen.findByRole('button', { name: 'गोभी' }));
 
     await user.type(await screen.findByLabelText(/कितना बेचा/), '12');
     await user.type(screen.getByLabelText(/भाव प्रति/), '5400');

@@ -202,6 +202,51 @@ had it right — two different numbers for the same money.
 Now resolved through `db/shares.ts`, which loads each khata's partners before
 totalling. Covered by `src/test/shares.test.ts` so it cannot come back.
 
+### Q22. Crop durations are guesses
+
+The twelve seeded crops carry a `defaultDurationMonths` used to prefill a
+khata's intended length: chilli 6, capsicum 5, cucumber 3, cauliflower 4,
+muskmelon 3, watermelon 3, arbi 6, kashifal 4, petha 5, potato 5, bajra 4,
+wheat 6.
+
+→ **Assumed from general practice, not from this farm.** They only prefill an
+editable field, so a wrong one costs a tap. Worth correcting against what is
+actually planted.
+
+Also worth confirming the transliterations: कशीफल for Kashifal, बाजरा for
+"Bazara", गेहूँ with the nukta.
+
+### Q23. Maps for fields — ANSWERED, partly built
+
+Asked: can fields be pointed to on a map, and given IDs?
+
+**IDs already exist.** Every field has had a UUID since M0, and khatas,
+expenses, sales and inventory entries all reference it. If what is wanted is a
+*human-readable* code ("K-3") that is a small addition — say so.
+
+**Location is now captured, without a map.** A field can be marked by standing
+in it and tapping once; `navigator.geolocation` gives a fix with no network and
+no library, so it stays inside offline-first (§2.1) and costs nothing against
+the 200 KB budget (§2.5). Latitude, longitude and accuracy are stored per field.
+
+**Map *display* is deliberately not built.** It needs two things offline-first
+does not give:
+
+1. **Tiles come over the network.** A map in a cold store or a field with no
+   signal shows grey squares. Caching tiles for an area is possible but is real
+   work and real storage on a phone whose owner already complains it is full.
+2. **A map library is 40 KB+ gzipped** against a 200 KB budget currently at
+   ~145 KB. Leaflet is the smallest credible option.
+
+→ **Recommendation:** leave it. The coordinates are captured, so a map can be
+added any time it earns its place — and the thing it would mostly be used for,
+"which plot did I mean", is already answered by the plot's name. Revisit if
+someone actually gets lost.
+
+Boundaries (walking a plot's perimeter to get its area) would be a different and
+more valuable feature than a pin, and would give `fields.area_bigha` for free.
+Not built; worth discussing.
+
 ### Q13. What order do grades go in inside the composite notation?
 
 The §5 example reads `21H+83G+7K+10M` — not the grade sort order (M, G, H, K,

@@ -32,6 +32,10 @@ export async function addField(householdId: string, name: string): Promise<strin
     // Area in bighas is not asked for at creation: it is one more thing to type
     // and nothing in the app needs it until per-bigha costs at M7.
     areaBigha: null,
+    // Captured later by standing in the plot and tapping once.
+    latitude: null,
+    longitude: null,
+    locationAccuracyM: null,
     sortOrder: existing.reduce((max, f) => Math.max(max, f.sortOrder), -1) + 1,
     archivedAt: null,
   };
@@ -83,4 +87,26 @@ export async function fieldUsage(fieldId: string): Promise<{ expenses: number; l
       .count(),
   ]);
   return { expenses, lots };
+}
+
+export interface FieldLocation {
+  latitude: number;
+  longitude: number;
+  accuracyM: number | null;
+}
+
+/**
+ * Records where a plot is. Called after a GPS fix taken on the spot — the
+ * phone's receiver needs no network, so this works standing in a field with no
+ * signal (CLAUDE.md §2.1).
+ */
+export async function setFieldLocation(id: string, location: FieldLocation | null): Promise<void> {
+  const existing = await db.fields.get(id);
+  if (!existing) return;
+  await db.fields.put({
+    ...existing,
+    latitude: location ? String(location.latitude) : null,
+    longitude: location ? String(location.longitude) : null,
+    locationAccuracyM: location?.accuracyM ?? null,
+  });
 }

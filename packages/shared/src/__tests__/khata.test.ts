@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   entryShare,
   khataBalance,
+  khataTitle,
   partnersAddUp,
   selfPercent,
   settlement,
@@ -155,5 +156,43 @@ describe('totalShare', () => {
         half,
       ),
     ).toBe(2250);
+  });
+});
+
+describe('khataTitle', () => {
+  it('reads crop, partner, season', () => {
+    expect(khataTitle({ crop: 'आलू', partners: half, season: '2025-26' })).toBe(
+      'आलू - राम सिंह - 2025-26',
+    );
+  });
+
+  it('names every partner but never the household itself', () => {
+    expect(khataTitle({ crop: 'गेहूँ', partners: thirds, season: '2025-26' })).toBe(
+      'गेहूँ - राम सिंह, श्याम लाल - 2025-26',
+    );
+  });
+
+  it('drops the partner part when the khata is not shared', () => {
+    expect(khataTitle({ crop: 'आलू', partners: solo, season: '2025-26' })).toBe('आलू - 2025-26');
+    expect(khataTitle({ crop: 'आलू', season: '2025-26' })).toBe('आलू - 2025-26');
+  });
+
+  it('leaves out whatever is not filled in yet, rather than showing blanks', () => {
+    expect(khataTitle({ season: '2025-26' })).toBe('2025-26');
+    expect(khataTitle({ crop: 'आलू' })).toBe('आलू');
+    expect(khataTitle({})).toBe('');
+  });
+
+  it('ignores a partner row with no name typed yet', () => {
+    expect(
+      khataTitle({
+        crop: 'आलू',
+        partners: [
+          { name: 'आप', sharePercent: 50, isSelf: true },
+          { name: '  ', sharePercent: 50, isSelf: false },
+        ],
+        season: '2025-26',
+      }),
+    ).toBe('आलू - 2025-26');
   });
 });

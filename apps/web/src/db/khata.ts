@@ -28,6 +28,8 @@ export interface PartnerInput {
 export interface KhataInput {
   name: string;
   cropId: string | null;
+  /** Which plot the venture is on. Optional — a khata may span the whole farm. */
+  fieldId: string | null;
   /** '2025-26'. Derived from the opening date when not given. */
   season: string | null;
   openedOn: string;
@@ -54,6 +56,7 @@ export async function saveKhata(
       householdId: ctx.householdId,
       cropCycleId: existing?.cropCycleId ?? ctx.cropCycleId,
       cropId: input.cropId,
+      fieldId: input.fieldId,
       name: input.name,
       season: input.season ?? seasonLabel(input.openedOn),
       openedOn: input.openedOn,

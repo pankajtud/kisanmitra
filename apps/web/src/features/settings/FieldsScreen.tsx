@@ -3,7 +3,16 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Screen } from '../../components/Screen.js';
 import { SuggestField } from '../../components/SuggestField.js';
-import { addField, archiveField, fieldUsage, listFields, renameField, restoreField } from '../../db/fields.js';
+import {
+  addField,
+  archiveField,
+  fieldUsage,
+  listFields,
+  renameField,
+  restoreField,
+  setFieldLocation,
+} from '../../db/fields.js';
+import { locationSupported, useLocation } from '../../hooks/useLocation.js';
 import type { AppContext } from '../../db/seed.js';
 
 /**
@@ -20,6 +29,22 @@ export function FieldsScreen({ ctx, onBack }: { ctx: AppContext; onBack: () => v
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [locatingId, setLocatingId] = useState<string | null>(null);
+  const { capture, state: locationState } = useLocation();
+
+  /**
+   * A fix is taken where the user is standing, so this is only useful in the
+   * plot itself. It needs no network — the GPS receiver works with no signal.
+   */
+  const markLocation = async (fieldId: string) => {
+    setLocatingId(fieldId);
+    try {
+      const fix = await capture();
+      if (fix) await setFieldLocation(fieldId, fix);
+    } finally {
+      setLocatingId(null);
+    }
+  };
 
   const fields = useLiveQuery(() => listFields(ctx.householdId, true), [ctx.householdId], []);
   const usage = useLiveQuery(
@@ -108,6 +133,14 @@ export function FieldsScreen({ ctx, onBack }: { ctx: AppContext; onBack: () => v
                             {t('fields.inUse', { expenses: used.expenses, lots: used.lots })}
                           </span>
                         ) : null}
+                        {field.latitude && field.longitude ? (
+                          <span className="tabular block text-sm text-credit">
+                            {t('fields.marked')}
+                            {field.locationAccuracyM
+                              ? ` · ${t('fields.accuracy', { m: field.locationAccuracyM })}`
+                              : ''}
+                          </span>
+                        ) : null}
                       </span>
                       <button
                         type="button"
@@ -126,6 +159,50 @@ export function FieldsScreen({ ctx, onBack }: { ctx: AppContext; onBack: () => v
                       >
                         {t('fields.archive')}
                       </button>
+                    </div>
+                  )}
+
+                  {/* Where the plot is. One tap, standing in it. */}
+                  {editing === field.id ? null : (
+                    <div className="mt-2 border-t border-line pt-2">
+                      {!locationSupported() ? (
+                        <p className="text-sm text-ink-soft">{t('fields.noGps')}</p>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void markLocation(field.id)}
+                            disabled={locatingId === field.id}
+                            className="btn-quiet btn-sm px-2 text-brand-ink"
+                          >
+                            <PinIcon />
+                            {locatingId === field.id
+                              ? t('fields.locating')
+                              : field.latitude
+                                ? t('fields.location')
+                                : t('fields.markHere')}
+                          </button>
+                          {field.latitude ? (
+                            <button
+                              type="button"
+                              onClick={() => void setFieldLocation(field.id, null)}
+                              className="btn-quiet btn-sm px-2 text-danger"
+                            >
+                              {t('fields.clearLocation')}
+                            </button>
+                          ) : null}
+                          {locatingId === field.id && locationState === 'denied' ? (
+                            <p className="error-text mt-1" role="alert">
+                              {t('fields.denied')}
+                            </p>
+                          ) : null}
+                          {locationState === 'failed' && locatingId === null ? (
+                            <p className="error-text mt-1" role="alert">
+                              {t('fields.locateFailed')}
+                            </p>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -182,5 +259,19 @@ export function FieldsScreen({ ctx, onBack }: { ctx: AppContext; onBack: () => v
         ) : null}
       </div>
     </Screen>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="2" />
+    </svg>
   );
 }

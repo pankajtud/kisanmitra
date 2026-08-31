@@ -195,7 +195,16 @@
     "archived": "Removed fields",
     "inUse": "Used in {{expenses}} expenses, {{lots}} lots",
     "archiveQuestion": "Remove this field? Old records stay as they are.",
-    "empty": "No fields yet."
+    "empty": "No fields yet.",
+    "location": "Location",
+    "markHere": "Stand in the plot and mark it",
+    "marked": "Location saved",
+    "accuracy": "accurate to about {{m}} m",
+    "clearLocation": "Remove location",
+    "locating": "Finding the location…",
+    "denied": "Location permission is off — turn it on in phone settings",
+    "locateFailed": "Couldn't get a fix. Go into the open and try again.",
+    "noGps": "This phone can't find a location"
   },
   "settings": {
     "title": "Settings",

@@ -30,6 +30,13 @@ describe('opening a khata', () => {
     await user.click(await screen.findByRole('button', { name: 'नया खाता' }));
 
     await user.click(await screen.findByRole('button', { name: 'आलू' }));
+
+    // The title composes itself from crop - partner - year.
+    const nameField = screen.getByLabelText(/खाते का नाम/) as HTMLInputElement;
+    expect(nameField.value).toBe(`आलू - ${new Date().getMonth() >= 9
+      ? `${new Date().getFullYear()}-${String((new Date().getFullYear() + 1) % 100).padStart(2, '0')}`
+      : `${new Date().getFullYear() - 1}-${String(new Date().getFullYear() % 100).padStart(2, '0')}`}`);
+
     await user.click(screen.getByRole('button', { name: 'खाता सेव करें' }));
 
     await waitFor(async () => {
@@ -40,5 +47,38 @@ describe('opening a khata', () => {
     const [khata] = await listKhatas(ctx.householdId);
     await screen.findByRole('heading', { name: khata!.name });
     expect(screen.getByText('पूरा हिसाब')).toBeInTheDocument();
+  });
+
+  it('puts the partner into the title, between crop and year', async () => {
+    const user = userEvent.setup();
+    await unlocked(user);
+
+    await user.click(screen.getByRole('button', { name: 'खाते' }));
+    await user.click(await screen.findByRole('button', { name: 'नया खाता' }));
+    await user.click(await screen.findByRole('button', { name: 'आलू' }));
+
+    await user.click(screen.getByRole('button', { name: 'साझेदार जोड़ें' }));
+    const partnerName = screen.getByLabelText("साझेदार का नाम");
+    await user.type(partnerName, 'राम सिंह');
+
+    const nameField = screen.getByLabelText(/खाते का नाम/) as HTMLInputElement;
+    expect(nameField.value).toMatch(/^आलू - राम सिंह - \d{4}-\d{2}$/);
+  });
+
+  it('records which field the khata is on', async () => {
+    const user = userEvent.setup();
+    await unlocked(user);
+
+    await user.click(screen.getByRole('button', { name: 'खाते' }));
+    await user.click(await screen.findByRole('button', { name: 'नया खाता' }));
+    await user.click(await screen.findByRole('button', { name: 'आलू' }));
+    await user.click(screen.getByRole('button', { name: 'Bijali' }));
+    await user.click(screen.getByRole('button', { name: 'खाता सेव करें' }));
+
+    await waitFor(async () => {
+      expect(await listKhatas(ctx.householdId)).toHaveLength(1);
+    });
+    const [khata] = await listKhatas(ctx.householdId);
+    expect(khata!.fieldId).not.toBeNull();
   });
 });

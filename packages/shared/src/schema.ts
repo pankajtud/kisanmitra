@@ -58,6 +58,18 @@ export const fields = pgTable('fields', {
     .references(() => households.id),
   name: text('name').notNull(), // 'Jaynagar', '3 Bigha'
   areaBigha: numeric('area_bigha', { precision: 8, scale: 2 }),
+  /**
+   * Where the plot is, captured by standing in it and tapping once.
+   *
+   * A GPS fix needs no network and no map library — the phone's receiver works
+   * in a field with no signal — so this stays inside the offline-first rule and
+   * costs nothing in bundle. Drawing it on a map needs tiles, which do not work
+   * offline; see docs/open-questions.md Q23.
+   */
+  latitude: numeric('latitude', { precision: 9, scale: 6 }),
+  longitude: numeric('longitude', { precision: 9, scale: 6 }),
+  /** Accuracy of the fix in metres, so a bad one can be seen and retaken. */
+  locationAccuracyM: integer('location_accuracy_m'),
   sortOrder: integer('sort_order').notNull().default(0),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
 });
@@ -119,6 +131,8 @@ export const khatas = pgTable('khatas', {
   cropCycleId: uuid('crop_cycle_id').references(() => cropCycles.id),
   /** Null for a khata that is not about one crop — odds and ends, a side venture. */
   cropId: uuid('crop_id').references(() => crops.id),
+  /** Which plot this venture is on. Optional: a khata may span the whole farm. */
+  fieldId: uuid('field_id').references(() => fields.id),
   /** What the farmer calls it: 'आलू 2025-26'. */
   name: text('name').notNull(),
   /**
