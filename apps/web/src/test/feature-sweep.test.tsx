@@ -193,8 +193,36 @@ describe('inventory screens', () => {
     const lotCell = within(table).getByRole('button', { name: '91/251' });
     expect(within(table).getByText(/111/)).toBeInTheDocument();
 
+    // Which cold store the produce sits in is shown on every row, whether the
+    // household uses one store or several.
+    expect(within(table).getByRole('columnheader', { name: 'स्टोर' })).toBeInTheDocument();
+    expect(within(table).getByText('G.L. Cold Storage, Chitaura')).toBeInTheDocument();
+
     await user.click(lotCell);
     expect(await screen.findByText('2/14')).toBeInTheDocument();
+    // And again on the consignment itself, as a labelled row.
+    expect(screen.getByText('G.L. Cold Storage, Chitaura')).toBeInTheDocument();
+  });
+
+  it('shows a second store on the rows stored there', async () => {
+    const { addColdStore } = await import('../db/coldStores.js');
+    const sharma = (await addColdStore(ctx.householdId, 'Sharma Cold Storage'))!;
+    const grades = await db.grades.where('householdId').equals(ctx.householdId).toArray();
+
+    await stock();
+    await saveEntry(ctx, {
+      khataId: null, cropId: null, coldStoreId: sharma, storedOn: '2026-03-15',
+      variety: null, fieldId: null, notes: null,
+      lots: [{ lotNo: '77/40', roomRack: '1/1', packets: [{ gradeId: grades[0]!.id, packets: 40 }] }],
+    });
+
+    const user = userEvent.setup();
+    await unlocked(user);
+    await user.click(screen.getByRole('button', { name: 'माल' }));
+
+    const table = await screen.findByRole('table');
+    expect(within(table).getByText('Sharma Cold Storage')).toBeInTheDocument();
+    expect(within(table).getByText('G.L. Cold Storage, Chitaura')).toBeInTheDocument();
   });
 
   it('opens the form for a new consignment', async () => {

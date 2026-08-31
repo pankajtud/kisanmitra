@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GradeMark } from '../../components/GradeMark.js';
 import { Screen } from '../../components/Screen.js';
+import { DetailRow } from '../../components/ui.js';
 import { db } from '../../db/db.js';
 import { deleteEntry, entryLots, entryPosition, getEntry, lotPosition } from '../../db/inventory.js';
 import type { AppContext } from '../../db/seed.js';
@@ -96,13 +97,22 @@ export function EntryDetail({
           <span className="tabular block text-4xl font-bold text-brand-ink">
             {soldOut ? t('stock.allSold') : formatLotBreakdown(left)}
           </span>
-          <span className="mt-2 block text-base text-ink-soft">
-            {store?.name}
-            {entry.variety ? ` · ${entry.variety}` : ''}
-            {field ? ` · ${field.name}` : ''}
-            {` · ${formatRegisterDate(entry.storedOn)}`}
-          </span>
         </div>
+
+        {/* Where it is, and what it is. Laid out as labelled rows rather than a
+            run-on line — this is the block a farmer reads to find the produce. */}
+        <dl className="card divide-y divide-line">
+          <DetailRow label={t('inventory.colStore')} value={store?.name ?? '—'} />
+          <DetailRow
+            label={t('stock.storedOnLabel')}
+            value={formatRegisterDate(entry.storedOn)}
+            tabular
+          />
+          {entry.variety ? (
+            <DetailRow label={t('stock.varietyLabel')} value={entry.variety} tabular />
+          ) : null}
+          <DetailRow label={t('expense.fieldLabel')} value={field?.name ?? t('expense.fieldAll')} />
+        </dl>
 
         <section>
           <h2 className="mb-2 text-xl font-bold">

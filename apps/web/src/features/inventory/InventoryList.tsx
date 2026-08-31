@@ -48,7 +48,6 @@ export function InventoryList({
 
   const fieldName = (id: string | null) => fields.find((f) => f.id === id)?.name ?? '—';
   const storeName = (id: string | null) => stores.find((s) => s.id === id)?.name ?? '—';
-  const manyStores = stores.length > 1;
 
   return (
     <Screen
@@ -108,7 +107,7 @@ export function InventoryList({
                             <Th>{t('inventory.colRack')}</Th>
                             <Th>{t('inventory.colVariety')}</Th>
                             <Th>{t('inventory.colField')}</Th>
-                            {manyStores ? <Th>{t('inventory.colStore')}</Th> : null}
+                            <Th>{t('inventory.colStore')}</Th>
                             <Th>{t('inventory.colDate')}</Th>
                           </tr>
                         </thead>
@@ -120,7 +119,7 @@ export function InventoryList({
                               zebra={index % 2 === 1}
                               onClick={() => onOpen(row.entry.id)}
                               fieldName={fieldName(row.entry.fieldId)}
-                              storeName={manyStores ? storeName(row.entry.coldStoreId) : null}
+                              storeName={storeName(row.entry.coldStoreId)}
                             />
                           ))}
                         </tbody>
@@ -169,7 +168,7 @@ function Row({
   zebra: boolean;
   onClick: () => void;
   fieldName: string;
-  storeName: string | null;
+  storeName: string;
 }) {
   const { t } = useTranslation();
 
@@ -208,9 +207,11 @@ function Row({
       <td className="tabular px-2 py-2 whitespace-nowrap">{row.lot.roomRack ?? '—'}</td>
       <td className="tabular px-2 py-2 whitespace-nowrap">{row.entry.variety ?? '—'}</td>
       <td className="px-2 py-2 whitespace-nowrap">{fieldName}</td>
-      {storeName !== null ? (
-        <td className="max-w-32 truncate px-2 py-2">{storeName}</td>
-      ) : null}
+      {/* Capped so a long store name cannot push the date off the row; the
+          full name is on the consignment itself. */}
+      <td className="max-w-36 truncate px-2 py-2" title={storeName}>
+        {storeName}
+      </td>
       <td className="tabular px-2 py-2 whitespace-nowrap text-ink-soft">
         {formatRegisterDate(row.entry.storedOn)}
       </td>
