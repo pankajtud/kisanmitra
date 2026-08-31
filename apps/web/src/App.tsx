@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NavTab } from './components/BottomNav.js';
 import { ErrorBoundary, ErrorScreen } from './components/ErrorScreen.js';
@@ -16,10 +16,13 @@ import { KhataList } from './features/khata/KhataList.js';
 import { SettingsScreen } from './features/settings/SettingsScreen.js';
 import { FieldsScreen } from './features/settings/FieldsScreen.js';
 import { StoresScreen } from './features/settings/StoresScreen.js';
+import { AccountScreen } from './features/settings/AccountScreen.js';
 import { SaleForm } from './features/stock/SaleForm.js';
 import { SalesList } from './features/stock/SalesList.js';
 import { saveReceiptDraft } from './db/expenses.js';
 import { useAppContext } from './hooks/useAppData.js';
+import { useSync } from './hooks/useSync.js';
+import { currentAccount } from './db/session.js';
 import { processPhoto } from './lib/image.js';
 
 /**
@@ -46,7 +49,8 @@ type Screen =
   | { name: 'saleForm'; lotId: string | null; saleId: string | null }
   | { name: 'settings' }
   | { name: 'fields' }
-  | { name: 'stores' };
+  | { name: 'stores' }
+  | { name: 'account' };
 
 export function App() {
   return (
@@ -62,6 +66,14 @@ function Screens() {
   const [locked, setLocked] = useState(true);
   const [stack, setStack] = useState<Screen[]>([{ name: 'home' }]);
   const [captureError, setCaptureError] = useState<string | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+
+  // Signing in is optional: the app has always worked without a server and
+  // still does. Sync only runs once there is somewhere to sync to.
+  useEffect(() => {
+    void currentAccount().then((account) => setSignedIn(account !== null));
+  }, []);
+  const sync = useSync(signedIn && !locked);
 
   const lock = useCallback(() => setLocked(true), []);
   useAutoLock(lock, !locked);
@@ -118,6 +130,8 @@ function Screens() {
           onAddLot={() => push({ name: 'entryForm', entryId: null })}
           onSeeSales={() => push({ name: 'sales' })}
           onSettings={() => push({ name: 'settings' })}
+          sync={sync}
+          signedIn={signedIn}
           onNavigate={navigate}
           error={captureError}
         />
@@ -243,6 +257,7 @@ function Screens() {
         <SettingsScreen
           onFields={() => push({ name: 'fields' })}
           onStores={() => push({ name: 'stores' })}
+          onAccount={() => push({ name: 'account' })}
           onLock={lock}
           onBack={back}
         />
@@ -253,5 +268,16 @@ function Screens() {
 
     case 'stores':
       return <StoresScreen ctx={ctx} onBack={back} />;
+
+    case 'account':
+      return (
+        <AccountScreen
+          onBack={back}
+          onSignedIn={() => {
+            setSignedIn(true);
+            sync.syncNow();
+          }}
+        />
+      );
   }
 }

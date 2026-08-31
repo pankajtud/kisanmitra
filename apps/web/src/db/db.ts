@@ -8,7 +8,7 @@
  * over an already-narrow index range.
  */
 import Dexie, { type EntityTable } from 'dexie';
-import { seasonLabel, uuidv7 } from '@kisanmitra/shared';
+import { seasonLabel, uuidv7, type OutboxItem } from '@kisanmitra/shared';
 import type {
   LocalColdStore,
   LocalCrop,
@@ -42,6 +42,7 @@ export class KisanMitraDb extends Dexie {
   expenses!: EntityTable<LocalExpense, 'id'>;
   receipts!: EntityTable<LocalReceipt, 'id'>;
   photos!: EntityTable<LocalPhoto, 'receiptId'>;
+  outbox!: EntityTable<OutboxItem, 'id'>;
   khatas!: EntityTable<LocalKhata, 'id'>;
   khataPartners!: EntityTable<LocalKhataPartner, 'id'>;
   inventoryEntries!: EntityTable<LocalInventoryEntry, 'id'>;
@@ -179,6 +180,32 @@ export class KisanMitraDb extends Dexie {
         await tx.table('lots').update(lot.id, { entryId });
       }
     });
+
+    // v8 adds the outbox: the queue of local writes waiting for a server.
+    // Ordered by its own UUIDv7 id, which encodes when the entry was written,
+    // so it drains in the order the farmer did things (CLAUDE.md §7).
+    //
+    // Child rows also gain the household and version columns their parents
+    // have, without which they cannot take part in a generic sync protocol.
+    this.version(8)
+      .stores({
+        outbox: 'id, entity, entityId, nextAttemptAt',
+        khataPartners: 'id, khataId, householdId',
+        lotGrades: 'id, lotId, gradeId, [lotId+gradeId], householdId',
+        saleGrades: 'id, saleId, gradeId, [saleId+gradeId], householdId',
+      })
+      .upgrade(async (tx) => {
+        const stamp = new Date().toISOString();
+        for (const name of ['khataPartners', 'lotGrades', 'saleGrades']) {
+          await tx
+            .table(name)
+            .toCollection()
+            .modify((row: { updatedAt?: string; deletedAt?: string | null }) => {
+              row.updatedAt ??= stamp;
+              row.deletedAt ??= null;
+            });
+        }
+      });
   }
 }
 

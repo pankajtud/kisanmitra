@@ -8,6 +8,7 @@
 import { uuidv7 } from '@kisanmitra/shared';
 import { partnersByKhata, sumShares } from './shares.js';
 import { db } from './db.js';
+import { enqueue, enqueueAll } from './outbox.js';
 import type { AppContext } from './seed.js';
 import type { LocalSale, LocalSaleGrade } from './types.js';
 
@@ -64,7 +65,7 @@ export async function saveSale(
   const id = existingId ?? uuidv7();
   const lines = lotId ? input.lines.filter((line) => line.packets > 0) : [];
 
-  await db.transaction('rw', [db.sales, db.saleGrades], async () => {
+  await db.transaction('rw', [db.sales, db.saleGrades, db.outbox], async () => {
     const existing = existingId ? await db.sales.get(existingId) : undefined;
 
     // A lot sale is priced per grade; a produce sale is quantity times rate.
@@ -104,18 +105,33 @@ export async function saveSale(
       syncState: 'pending',
     };
     await db.sales.put(sale);
+    await enqueue(null, 'sales', sale);
 
+    // Soft-deleted rather than removed, so a line taken off a sale reaches the
+    // other phones instead of coming back on their next pull.
     const previous = await db.saleGrades.where('saleId').equals(id).toArray();
-    await db.saleGrades.bulkDelete(previous.map((row) => row.id));
+    const cleared = previous
+      .filter((row) => row.deletedAt === null)
+      .map((row) => ({ ...row, deletedAt: timestamp, updatedAt: timestamp }));
+    if (cleared.length > 0) {
+      await db.saleGrades.bulkPut(cleared);
+      await enqueueAll(null, 'saleGrades', cleared);
+    }
 
     const rows: LocalSaleGrade[] = lines.map((line) => ({
       id: uuidv7(),
+      householdId: ctx.householdId,
       saleId: id,
       gradeId: line.gradeId,
       packets: line.packets,
       ratePerPacket: line.ratePerPacket,
+      updatedAt: timestamp,
+      deletedAt: null,
     }));
-    if (rows.length > 0) await db.saleGrades.bulkPut(rows);
+    if (rows.length > 0) {
+      await db.saleGrades.bulkPut(rows);
+      await enqueueAll(null, 'saleGrades', rows);
+    }
   });
 
   return id;
@@ -125,7 +141,9 @@ export async function deleteSale(id: string): Promise<void> {
   const existing = await db.sales.get(id);
   if (!existing) return;
   const timestamp = now();
-  await db.sales.put({ ...existing, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' });
+  const removed = { ...existing, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' as const };
+  await db.sales.put(removed);
+  await enqueue(null, 'sales', removed);
 }
 
 /** Sales out of one cold-storage lot. */
@@ -183,6 +201,6 @@ export function getSale(id: string): Promise<LocalSale | undefined> {
   return db.sales.get(id);
 }
 
-export function saleGradeRows(saleId: string): Promise<LocalSaleGrade[]> {
-  return db.saleGrades.where('saleId').equals(saleId).toArray();
+export async function saleGradeRows(saleId: string): Promise<LocalSaleGrade[]> {
+  return (await db.saleGrades.where('saleId').equals(saleId).toArray()).filter(isLive);
 }

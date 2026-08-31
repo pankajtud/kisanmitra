@@ -70,14 +70,16 @@ export type LocalCrop = Stringify<Crop>;
 export type LocalKhata = Local<Stringify<Khata>>;
 
 /** Shares are percentages, held as numbers locally for arithmetic. */
-export type LocalKhataPartner = Omit<KhataPartner, 'sharePercent'> & { sharePercent: number };
+export type LocalKhataPartner = Omit<Stringify<KhataPartner>, 'sharePercent'> & {
+  sharePercent: number;
+};
 
 export type LocalInventoryEntry = Local<Stringify<InventoryEntry>>;
 
 /** A lot is a place inside one cold store, holding part of an entry. */
 export type LocalLot = Local<Stringify<Lot>>;
-/** Packets per grade in a lot. Scoped through its parent lot, not household_id. */
-export type LocalLotGrade = LotGrade;
+/** Packets per grade in a lot. Carries household and version columns so it syncs like any other row. */
+export type LocalLotGrade = Stringify<LotGrade>;
 
 export type LocalSale = Local<
   Stringify<Omit<Sale, 'ratePerPacket' | 'totalAmount' | 'quantity' | 'partnerShare'>>
@@ -90,10 +92,11 @@ export type LocalSale = Local<
   partnerShare: number | null;
 };
 
-export type LocalSaleGrade = Omit<SaleGrade, 'ratePerPacket'> & {
+export type LocalSaleGrade = Omit<Stringify<SaleGrade>, 'ratePerPacket'> & {
   /** Grades often fetch different rates in the same sale. */
   ratePerPacket: number | null;
 };
+
 
 export type LocalReceipt = Local<Stringify<Receipt>>;
 export type LocalHousehold = Stringify<Household>;

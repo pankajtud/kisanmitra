@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { CameraButton } from '../../components/CameraButton.js';
 import { Money } from '../../components/Money.js';
 import { Screen } from '../../components/Screen.js';
+import { SyncBar } from '../../components/SyncBar.js';
+import type { SyncStatus } from '../../hooks/useSync.js';
 import type { NavTab } from '../../components/BottomNav.js';
 import { StatCard } from '../../components/ui.js';
 import { seasonTotal } from '../../db/expenses.js';
@@ -27,6 +29,8 @@ export function HomeScreen({
   onAddLot,
   onSeeSales,
   onSettings,
+  sync,
+  signedIn,
   onNavigate,
   error,
 }: {
@@ -38,6 +42,8 @@ export function HomeScreen({
   onAddLot: () => void;
   onSeeSales: () => void;
   onSettings: () => void;
+  sync: SyncStatus;
+  signedIn: boolean;
   onNavigate: (tab: NavTab) => void;
   error: string | null;
 }) {
@@ -71,6 +77,8 @@ export function HomeScreen({
         </button>
       }
     >
+      <SyncBar status={sync} signedIn={signedIn} />
+
       {/* The season, netted. This is the number the whole app exists to produce. */}
       <section className="card mb-3 px-5 py-5">
         <div className="flex items-baseline justify-between">

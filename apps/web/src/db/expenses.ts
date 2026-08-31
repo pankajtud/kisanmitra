@@ -5,6 +5,7 @@
 import { uuidv7 } from '@kisanmitra/shared';
 import { partnersByKhata, sumShares } from './shares.js';
 import { db } from './db.js';
+import { enqueue } from './outbox.js';
 import type { AppContext } from './seed.js';
 import type { LocalExpense, LocalPhoto, LocalReceipt } from './types.js';
 
@@ -116,10 +117,13 @@ export async function saveReceiptDraft(
     syncState: 'pending',
   };
 
-  await db.transaction('rw', [db.receipts, db.photos, db.expenses], async () => {
+  await db.transaction('rw', [db.receipts, db.photos, db.expenses, db.outbox], async () => {
     await db.receipts.put(receipt);
     await db.photos.put(photoRow);
     await db.expenses.put(draft);
+    // The receipt is queued now; the draft expense is not, because it has no
+    // amount yet and is this phone's business until confirmed (§8.2).
+    await enqueue(null, 'receipts', receipt);
   });
 
   return { receiptId, expenseId };
@@ -140,7 +144,7 @@ export async function saveExpense(
   const timestamp = now();
   const id = existingId ?? uuidv7();
 
-  await db.transaction('rw', [db.expenses, db.receipts], async () => {
+  await db.transaction('rw', [db.expenses, db.receipts, db.outbox], async () => {
     const existing = existingId ? await db.expenses.get(existingId) : undefined;
 
     const row: LocalExpense = {
@@ -172,17 +176,20 @@ export async function saveExpense(
       syncState: 'pending',
     };
     await db.expenses.put(row);
+    await enqueue(null, 'expenses', row);
 
     // The user has confirmed the values that sit next to this photo (§8.6).
     if (row.receiptId) {
       const receipt = await db.receipts.get(row.receiptId);
       if (receipt && !receipt.confirmedAt) {
-        await db.receipts.put({
+        const confirmed = {
           ...receipt,
           confirmedAt: timestamp,
           confirmedBy: ctx.userId,
-          syncState: 'pending',
-        });
+          syncState: 'pending' as const,
+        };
+        await db.receipts.put(confirmed);
+        await enqueue(null, 'receipts', confirmed);
       }
     }
   });
@@ -195,12 +202,9 @@ export async function deleteExpense(id: string): Promise<void> {
   const timestamp = now();
   const existing = await db.expenses.get(id);
   if (!existing) return;
-  await db.expenses.put({
-    ...existing,
-    deletedAt: timestamp,
-    updatedAt: timestamp,
-    syncState: 'pending',
-  });
+  const removed = { ...existing, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' as const };
+  await db.expenses.put(removed);
+  await enqueue(null, 'expenses', removed);
 }
 
 /**

@@ -217,6 +217,33 @@ not just a label. **Still an assumption.** If this district turns over
 elsewhere, `SEASON_START_MONTH` is the one constant to change, and khatas near
 the boundary would move between books.
 
+### Q25. Sync is built, but not deployed — the server has nowhere to run
+
+M2's sync engine exists: outbox, idempotent push, incremental pull,
+last-write-wins with an `overwrites` audit, phone+OTP auth, sessions in a
+long-lived cookie.
+
+→ **It does nothing until the API is hosted somewhere.** The web app is on
+Cloudflare Workers as static assets; the Fastify server and its Postgres are
+not deployed at all. §4 says the server runs on the existing self-hosted box.
+Until it does, `/sync/push` and `/auth/*` 404 and the app carries on offline
+exactly as before — which is the correct failure, not a broken one.
+
+Also unresolved:
+
+- **DLT registration still has not been started.** Without it MSG91 cannot send
+  a transactional SMS, so real OTP does not work. Development uses a fixed code
+  (`123456`) so nothing is blocked, and `consoleSms` logs instead of sending.
+  **This is now the single thing standing between the build and real users on
+  more than one phone.**
+- **Photo upload is not built.** §7 wants photos on a lower-priority queue, wifi
+  only by default. Records sync; the images stay on the phone that took them.
+- **Two devices that each seeded their own household** — which is what happens
+  today, laptop and phone — will push two different `household_id`s. Whoever
+  signs in first wins; the second device's records land in *its own* household,
+  not the first one's. Joining with an invite code moves the *user*, not the
+  records they already made. Merging those is not built.
+
 ### Q22. Crop durations are guesses
 
 The twelve seeded crops carry a `defaultDurationMonths` used to prefill a

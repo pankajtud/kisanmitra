@@ -6,8 +6,10 @@
  * hand-write a duplicate interface.
  */
 import {
+  bigserial,
   boolean,
   check,
+  index,
   date,
   integer,
   jsonb,
@@ -26,7 +28,10 @@ export const households = pgTable('households', {
   id: uuid('id').primaryKey(),
   name: text('name').notNull(),
   village: text('village'),
+  /** Six digits, shared over WhatsApp so family can join (CLAUDE.md §12). */
+  inviteCode: text('invite_code'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const users = pgTable('users', {
@@ -168,6 +173,7 @@ export const khatas = pgTable('khatas', {
  */
 export const khataPartners = pgTable('khata_partners', {
   id: uuid('id').primaryKey(),
+  householdId: uuid('household_id').references(() => households.id),
   khataId: uuid('khata_id')
     .notNull()
     .references(() => khatas.id, { onDelete: 'cascade' }),
@@ -177,6 +183,8 @@ export const khataPartners = pgTable('khata_partners', {
   /** True for the household's own row. Exactly one per khata. */
   isSelf: boolean('is_self').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
 export const coldStores = pgTable('cold_stores', {
@@ -250,6 +258,7 @@ export const lotGrades = pgTable(
   'lot_grades',
   {
     id: uuid('id').primaryKey(),
+    householdId: uuid('household_id').references(() => households.id),
     lotId: uuid('lot_id')
       .notNull()
       .references(() => lots.id, { onDelete: 'cascade' }),
@@ -257,6 +266,8 @@ export const lotGrades = pgTable(
       .notNull()
       .references(() => grades.id),
     packets: integer('packets').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (t) => [
     unique('lot_grades_lot_grade_key').on(t.lotId, t.gradeId),
@@ -309,6 +320,7 @@ export const saleGrades = pgTable(
   'sale_grades',
   {
     id: uuid('id').primaryKey(),
+    householdId: uuid('household_id').references(() => households.id),
     saleId: uuid('sale_id')
       .notNull()
       .references(() => sales.id, { onDelete: 'cascade' }),
@@ -318,6 +330,8 @@ export const saleGrades = pgTable(
     packets: integer('packets').notNull(),
     /** Grades often fetch different rates. */
     ratePerPacket: numeric('rate_per_packet', { precision: 10, scale: 2 }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (t) => [
     unique('sale_grades_sale_grade_key').on(t.saleId, t.gradeId),
@@ -419,3 +433,90 @@ export const expenses = pgTable('expenses', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
+
+/* ------------------------------------------------------------------- sync */
+
+/**
+ * A per-household ledger of every record that changed, in commit order.
+ *
+ * Clients pull with `seq > their last cursor`. A timestamp watermark cannot do
+ * this job: two phones writing in the same second, or with skewed clocks, would
+ * make records invisible to each other forever. `seq` is assigned under an
+ * advisory lock held for the whole push, so its order is commit order and a
+ * client can never step over a change it has not seen.
+ */
+export const changes = pgTable(
+  'changes',
+  {
+    seq: bigserial('seq', { mode: 'number' }).primaryKey(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id),
+    entity: text('entity').notNull(),
+    entityId: uuid('entity_id').notNull(),
+    /** Which device's write this was, so a client can skip its own echo. */
+    deviceId: text('device_id'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('changes_household_seq_idx').on(t.householdId, t.seq)],
+);
+
+/**
+ * Every version that lost a conflict, kept forever.
+ *
+ * Last-write-wins throws something away by definition, and §2.7 says nothing is
+ * ever truly lost. Whichever side loses — the incoming write or the stored one —
+ * lands here with enough context to put it back by hand.
+ */
+export const overwrites = pgTable('overwrites', {
+  id: uuid('id').primaryKey(),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id),
+  entity: text('entity').notNull(),
+  entityId: uuid('entity_id').notNull(),
+  /** The version that did not survive. */
+  losingPayload: jsonb('losing_payload').notNull(),
+  losingUpdatedAt: timestamp('losing_updated_at', { withTimezone: true }).notNull(),
+  /** The version that did. */
+  winningUpdatedAt: timestamp('winning_updated_at', { withTimezone: true }).notNull(),
+  /** 'incoming' when a client's write was rejected, 'stored' when it replaced one. */
+  loser: text('loser').notNull(),
+  deviceId: text('device_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A signed-in device. Expiry is measured in months — §12. */
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    /** sha-256 of the cookie value; the token itself is never stored. */
+    tokenHash: text('token_hash').notNull().unique(),
+    deviceId: text('device_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [index('sessions_user_idx').on(t.userId)],
+);
+
+/** A one-time code sent by SMS. Hashed, short-lived, and rate limited. */
+export const otpCodes = pgTable(
+  'otp_codes',
+  {
+    id: uuid('id').primaryKey(),
+    phone: text('phone').notNull(),
+    codeHash: text('code_hash').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('otp_phone_idx').on(t.phone)],
+);

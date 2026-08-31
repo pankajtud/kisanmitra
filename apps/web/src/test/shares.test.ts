@@ -31,8 +31,10 @@ beforeEach(async () => {
     },
   ]);
   await db.khataPartners.bulkPut([
-    { id: uuidv7(), khataId: SHARED, name: 'आप', sharePercent: 50, isSelf: true, sortOrder: 0 },
-    { id: uuidv7(), khataId: SHARED, name: 'राम सिंह', sharePercent: 50, isSelf: false, sortOrder: 1 },
+    { id: uuidv7(), householdId: HOUSEHOLD, khataId: SHARED, name: 'आप', sharePercent: 50,
+      isSelf: true, sortOrder: 0, updatedAt: '', deletedAt: null },
+    { id: uuidv7(), householdId: HOUSEHOLD, khataId: SHARED, name: 'राम सिंह', sharePercent: 50,
+      isSelf: false, sortOrder: 1, updatedAt: '', deletedAt: null },
   ]);
 });
 

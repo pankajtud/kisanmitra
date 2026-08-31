@@ -13,3 +13,4 @@ export * from './domain/money.js';
 export * from './domain/season.js';
 export * from './domain/sharing.js';
 export * from './domain/stock.js';
+export * from './domain/sync.js';

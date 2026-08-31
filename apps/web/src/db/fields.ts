@@ -9,6 +9,7 @@
  */
 import { uuidv7 } from '@kisanmitra/shared';
 import { db } from './db.js';
+import { enqueue } from './outbox.js';
 import type { LocalField } from './types.js';
 
 export async function addField(householdId: string, name: string): Promise<string | null> {
@@ -20,7 +21,7 @@ export async function addField(householdId: string, name: string): Promise<strin
   // Re-adding an archived field brings it back rather than creating a twin.
   const match = existing.find((f) => f.name.toLowerCase() === trimmed.toLowerCase());
   if (match) {
-    if (match.archivedAt) await db.fields.put({ ...match, archivedAt: null });
+    if (match.archivedAt) await putSynced({ ...match, archivedAt: null });
     return match.id;
   }
 
@@ -39,7 +40,7 @@ export async function addField(householdId: string, name: string): Promise<strin
     sortOrder: existing.reduce((max, f) => Math.max(max, f.sortOrder), -1) + 1,
     archivedAt: null,
   };
-  await db.fields.put(field);
+  await putSynced(field);
   return id;
 }
 
@@ -47,20 +48,20 @@ export async function renameField(id: string, name: string): Promise<void> {
   const trimmed = name.trim();
   const existing = await db.fields.get(id);
   if (!existing || !trimmed) return;
-  await db.fields.put({ ...existing, name: trimmed });
+  await putSynced({ ...existing, name: trimmed });
 }
 
 /** Hidden from the pickers; existing records keep pointing at it. */
 export async function archiveField(id: string): Promise<void> {
   const existing = await db.fields.get(id);
   if (!existing) return;
-  await db.fields.put({ ...existing, archivedAt: new Date().toISOString() });
+  await putSynced({ ...existing, archivedAt: new Date().toISOString() });
 }
 
 export async function restoreField(id: string): Promise<void> {
   const existing = await db.fields.get(id);
   if (!existing) return;
-  await db.fields.put({ ...existing, archivedAt: null });
+  await putSynced({ ...existing, archivedAt: null });
 }
 
 export async function listFields(householdId: string, includeArchived = false) {
@@ -103,10 +104,16 @@ export interface FieldLocation {
 export async function setFieldLocation(id: string, location: FieldLocation | null): Promise<void> {
   const existing = await db.fields.get(id);
   if (!existing) return;
-  await db.fields.put({
+  await putSynced({
     ...existing,
     latitude: location ? String(location.latitude) : null,
     longitude: location ? String(location.longitude) : null,
     locationAccuracyM: location?.accuracyM ?? null,
   });
+}
+
+/** Writes a row and queues it for the server in one step, so neither is forgotten. */
+async function putSynced(row: Parameters<typeof db.fields.put>[0]): Promise<void> {
+  await db.fields.put(row);
+  await enqueue(null, 'fields', row as { id: string; updatedAt?: string | null });
 }

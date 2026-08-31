@@ -7,6 +7,7 @@
  */
 import { uuidv7 } from '@kisanmitra/shared';
 import { db } from './db.js';
+import { enqueue } from './outbox.js';
 import type { LocalCrop } from './types.js';
 
 export interface CropInput {
@@ -33,7 +34,7 @@ export async function addCrop(householdId: string, input: CropInput): Promise<st
       crop.nameEn.toLowerCase() === nameHi.toLowerCase(),
   );
   if (match) {
-    if (match.archivedAt) await db.crops.put({ ...match, archivedAt: null });
+    if (match.archivedAt) await putSynced({ ...match, archivedAt: null });
     return match.id;
   }
 
@@ -51,14 +52,14 @@ export async function addCrop(householdId: string, input: CropInput): Promise<st
     sortOrder: existing.reduce((max, c) => Math.max(max, c.sortOrder), -1) + 1,
     archivedAt: null,
   };
-  await db.crops.put(crop);
+  await putSynced(crop);
   return id;
 }
 
 export async function archiveCrop(id: string): Promise<void> {
   const existing = await db.crops.get(id);
   if (!existing) return;
-  await db.crops.put({ ...existing, archivedAt: new Date().toISOString() });
+  await putSynced({ ...existing, archivedAt: new Date().toISOString() });
 }
 
 export async function listCrops(householdId: string, includeArchived = false) {
@@ -106,9 +107,9 @@ export async function reconcileCrops(
     if (match) {
       // Keep the seed's ordering and defaults current, but never un-archive a
       // crop the household deliberately hid.
-      await db.crops.put({ ...match, ...crop, id: match.id, householdId, archivedAt: match.archivedAt });
+      await putSynced({ ...match, ...crop, id: match.id, householdId, archivedAt: match.archivedAt });
     } else {
-      await db.crops.put({ id: uuidv7(), householdId, ...crop, archivedAt: null });
+      await putSynced({ id: uuidv7(), householdId, ...crop, archivedAt: null });
       added += 1;
     }
   }
@@ -116,7 +117,7 @@ export async function reconcileCrops(
   for (const crop of existing) {
     const wasSeeded = SEEDED_ONCE.has(crop.nameHi.toLowerCase());
     if (!seedNames.has(crop.nameHi.toLowerCase()) && wasSeeded && crop.archivedAt === null) {
-      await db.crops.put({ ...crop, archivedAt: new Date().toISOString() });
+      await putSynced({ ...crop, archivedAt: new Date().toISOString() });
       archived += 1;
     }
   }
@@ -130,3 +131,9 @@ export async function reconcileCrops(
  * it.
  */
 const SEEDED_ONCE = new Set(['सरसों', 'धान', 'मटर', 'गन्ना', 'गेहूं']);
+
+/** Writes a row and queues it for the server in one step, so neither is forgotten. */
+async function putSynced(row: Parameters<typeof db.crops.put>[0]): Promise<void> {
+  await db.crops.put(row);
+  await enqueue(null, 'crops', row as { id: string; updatedAt?: string | null });
+}

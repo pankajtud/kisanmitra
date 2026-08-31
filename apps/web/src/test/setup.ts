@@ -30,8 +30,28 @@ if (!globalThis.localStorage) {
   });
 }
 
+/**
+ * No test may reach the network. The app is offline-first, so signed-out with
+ * an unreachable server is the correct default state to test in; a test that
+ * wants sync stubs its own responses.
+ */
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/auth/me')) return new Response(null, { status: 401 });
+      return new Response(JSON.stringify({}), { status: 503 });
+    }),
+  );
+});
+
 beforeEach(async () => {
   vi.restoreAllMocks();
+  // The previous test may still have a write in flight — the PIN's PBKDF2
+  // check records a failed attempt after it resolves. Let those land before
+  // wiping, or they reappear as state in the next test.
+  await new Promise((resolve) => setTimeout(resolve, 0));
   localStorage.clear();
   await db.delete();
   await db.open();

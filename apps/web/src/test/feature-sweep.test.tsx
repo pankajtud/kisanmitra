@@ -46,6 +46,11 @@ describe('the lock', () => {
   });
 
   it('asks a first-time user to create one', async () => {
+    // Stated rather than inherited: a test about first-run behaviour should set
+    // up first-run state itself, not depend on another test's cleanup.
+    const { clearPin } = await import('../db/lock.js');
+    clearPin();
+
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'चार अंकों का पिन बनाएं' })).toBeInTheDocument();
   });

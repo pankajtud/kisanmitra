@@ -14,11 +14,13 @@ import { LOCALES, setLocale, type Locale } from '../../i18n/index.js';
 export function SettingsScreen({
   onFields,
   onStores,
+  onAccount,
   onLock,
   onBack,
 }: {
   onFields: () => void;
   onStores: () => void;
+  onAccount: () => void;
   /** Re-lock now, which is also how the PIN gets changed. */
   onLock: () => void;
   onBack: () => void;
@@ -29,6 +31,13 @@ export function SettingsScreen({
   return (
     <Screen title={t('settings.title')} onBack={onBack}>
       <div className="flex flex-col gap-6">
+        <section>
+          <h2 className="label">{t('account.title')}</h2>
+          <button type="button" onClick={onAccount} className="btn-secondary w-full">
+            {t('account.title')}
+          </button>
+        </section>
+
         <section>
           <h2 className="label">{t('settings.fields')}</h2>
           <div className="flex flex-col gap-2">

@@ -8,6 +8,7 @@
  */
 import { uuidv7 } from '@kisanmitra/shared';
 import { db } from './db.js';
+import { enqueue } from './outbox.js';
 import type { LocalColdStore } from './types.js';
 
 export async function listColdStores(householdId: string, includeArchived = false) {
@@ -30,12 +31,12 @@ export async function addColdStore(householdId: string, name: string): Promise<s
   const existing = await db.coldStores.where('householdId').equals(householdId).toArray();
   const match = existing.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
   if (match) {
-    if (match.archivedAt) await db.coldStores.put({ ...match, archivedAt: null });
+    if (match.archivedAt) await putSynced({ ...match, archivedAt: null });
     return match.id;
   }
 
   const id = uuidv7();
-  await db.coldStores.put({
+  await putSynced({
     id,
     householdId,
     name: trimmed,
@@ -54,7 +55,7 @@ export async function renameColdStore(id: string, name: string): Promise<void> {
   const trimmed = name.trim();
   const existing = await db.coldStores.get(id);
   if (!existing || !trimmed) return;
-  await db.coldStores.put({ ...existing, name: trimmed });
+  await putSynced({ ...existing, name: trimmed });
 }
 
 /** Exactly one default per household, so a new consignment never has to ask. */
@@ -66,19 +67,19 @@ export async function makeDefaultColdStore(householdId: string, id: string): Pro
 export async function archiveColdStore(id: string): Promise<void> {
   const existing = await db.coldStores.get(id);
   if (!existing) return;
-  await db.coldStores.put({ ...existing, archivedAt: new Date().toISOString(), isDefault: false });
+  await putSynced({ ...existing, archivedAt: new Date().toISOString(), isDefault: false });
 
   // A household must always have somewhere to put produce by default.
   const remaining = await listColdStores(existing.householdId);
   if (remaining.length > 0 && !remaining.some((s) => s.isDefault)) {
-    await db.coldStores.put({ ...remaining[0]!, isDefault: true });
+    await putSynced({ ...remaining[0]!, isDefault: true });
   }
 }
 
 export async function restoreColdStore(id: string): Promise<void> {
   const existing = await db.coldStores.get(id);
   if (!existing) return;
-  await db.coldStores.put({ ...existing, archivedAt: null });
+  await putSynced({ ...existing, archivedAt: null });
 }
 
 /** How many consignments point at a store — shown before archiving. */
@@ -88,4 +89,10 @@ export async function coldStoreUsage(coldStoreId: string): Promise<number> {
     .equals(coldStoreId)
     .filter((e) => e.deletedAt === null)
     .count();
+}
+
+/** Writes a row and queues it for the server in one step, so neither is forgotten. */
+async function putSynced(row: Parameters<typeof db.coldStores.put>[0]): Promise<void> {
+  await db.coldStores.put(row);
+  await enqueue(null, 'coldStores', row as { id: string; updatedAt?: string | null });
 }

@@ -81,7 +81,14 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
       db.coldStores,
     ],
     async () => {
-      await db.households.put({ id: householdId, name: '', village: null, createdAt });
+      await db.households.put({
+        id: householdId,
+        name: '',
+        village: null,
+        inviteCode: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
 
       // Until M2 there is no phone number to bind to. The row exists so that
       // `created_by` is real from the very first expense.

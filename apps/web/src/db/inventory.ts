@@ -8,6 +8,7 @@
  */
 import { remainingByGrade, seasonLabel, uuidv7, type GradePackets } from '@kisanmitra/shared';
 import { db } from './db.js';
+import { enqueue, enqueueAll } from './outbox.js';
 import type { AppContext } from './seed.js';
 import type { LocalInventoryEntry, LocalLot, LocalLotGrade } from './types.js';
 
@@ -46,7 +47,7 @@ export async function saveEntry(
   const timestamp = now();
   const id = existingId ?? uuidv7();
 
-  await db.transaction('rw', [db.inventoryEntries, db.lots, db.lotGrades], async () => {
+  await db.transaction('rw', [db.inventoryEntries, db.lots, db.lotGrades, db.outbox], async () => {
     const existing = existingId ? await db.inventoryEntries.get(existingId) : undefined;
 
     const entry: LocalInventoryEntry = {
@@ -67,6 +68,7 @@ export async function saveEntry(
       syncState: 'pending',
     };
     await db.inventoryEntries.put(entry);
+    await enqueue(null, 'inventoryEntries', entry);
 
     const kept = new Set(input.lots.map((lot) => lot.id).filter(Boolean) as string[]);
     const previous = await db.lots.where('entryId').equals(id).toArray();
@@ -75,7 +77,9 @@ export async function saveEntry(
     // point at it, and nothing is ever truly deleted (CLAUDE.md §2.7).
     for (const lot of previous) {
       if (!kept.has(lot.id)) {
-        await db.lots.put({ ...lot, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' });
+        const removed = { ...lot, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' as const };
+        await db.lots.put(removed);
+        await enqueue(null, 'lots', removed);
       }
     }
 
@@ -98,14 +102,34 @@ export async function saveEntry(
         syncState: 'pending',
       };
       await db.lots.put(lot);
+      await enqueue(null, 'lots', lot);
 
+      // Soft-deleted, not removed, so a grade taken out of a lot reaches the
+      // other phones instead of reappearing on their next pull.
       const oldGrades = await db.lotGrades.where('lotId').equals(lotId).toArray();
-      await db.lotGrades.bulkDelete(oldGrades.map((row) => row.id));
+      const clearedGrades = oldGrades
+        .filter((row) => row.deletedAt === null)
+        .map((row) => ({ ...row, deletedAt: timestamp, updatedAt: timestamp }));
+      if (clearedGrades.length > 0) {
+        await db.lotGrades.bulkPut(clearedGrades);
+        await enqueueAll(null, 'lotGrades', clearedGrades);
+      }
 
       const rows: LocalLotGrade[] = lotInput.packets
         .filter((entry) => entry.packets > 0)
-        .map((entry) => ({ id: uuidv7(), lotId, gradeId: entry.gradeId, packets: entry.packets }));
-      if (rows.length > 0) await db.lotGrades.bulkPut(rows);
+        .map((entry) => ({
+          id: uuidv7(),
+          householdId: ctx.householdId,
+          lotId,
+          gradeId: entry.gradeId,
+          packets: entry.packets,
+          updatedAt: timestamp,
+          deletedAt: null,
+        }));
+      if (rows.length > 0) {
+        await db.lotGrades.bulkPut(rows);
+        await enqueueAll(null, 'lotGrades', rows);
+      }
     }
   });
 
@@ -116,12 +140,9 @@ export async function deleteEntry(id: string): Promise<void> {
   const existing = await db.inventoryEntries.get(id);
   if (!existing) return;
   const timestamp = now();
-  await db.inventoryEntries.put({
-    ...existing,
-    deletedAt: timestamp,
-    updatedAt: timestamp,
-    syncState: 'pending',
-  });
+  const removed = { ...existing, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' as const };
+  await db.inventoryEntries.put(removed);
+  await enqueue(null, 'inventoryEntries', removed);
 }
 
 export function getEntry(id: string): Promise<LocalInventoryEntry | undefined> {
@@ -148,8 +169,8 @@ export function getLot(id: string): Promise<LocalLot | undefined> {
   return db.lots.get(id);
 }
 
-export function lotGrades(lotId: string): Promise<LocalLotGrade[]> {
-  return db.lotGrades.where('lotId').equals(lotId).toArray();
+export async function lotGrades(lotId: string): Promise<LocalLotGrade[]> {
+  return (await db.lotGrades.where('lotId').equals(lotId).toArray()).filter(isLive);
 }
 
 /** Packets sold out of one lot, across every instalment. */

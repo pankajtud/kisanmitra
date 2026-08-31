@@ -357,5 +357,28 @@
     "inUse": "in {{count}} entries",
     "archiveQuestion": "Remove this cold store? Old records stay as they are.",
     "empty": "No cold stores yet."
+  },
+  "account": {
+    "title": "Account and sync",
+    "why": "Enter your phone number so your records live in more than one place.",
+    "phoneLabel": "Your phone number",
+    "sendCode": "Send code",
+    "codeLabel": "Enter the code sent to {{phone}}",
+    "signIn": "Turn on",
+    "changeNumber": "Change number",
+    "wrongCode": "That code did not match",
+    "sendFailed": "Could not do that now. Try later.",
+    "signedIn": "On",
+    "signOut": "Turn off",
+    "signOutSafe": "Turning this off leaves every record on this phone.",
+    "queued": "{{count}} records are being sent",
+    "waitingHere": "{{count}} records are on this phone and not sent",
+    "joinLabel": "Family code",
+    "join": "Join",
+    "badInvite": "That code did not match",
+    "syncing": "Sending…",
+    "synced": "Everything sent",
+    "pending": "{{count}} still to send",
+    "offlineNote": "They will go on their own when there is internet"
   }
 }

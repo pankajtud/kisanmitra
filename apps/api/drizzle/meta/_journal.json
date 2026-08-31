@@ -64,6 +64,20 @@
       "when": 1788175534893,
       "tag": "0008_cold_store_management",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788180549110,
+      "tag": "0009_sync_auth_and_conflicts",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788181007292,
+      "tag": "0010_sale_grade_sync_columns",
+      "breakpoints": true
     }
   ]
 }

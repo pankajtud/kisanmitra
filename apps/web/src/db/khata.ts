@@ -11,6 +11,7 @@ import {
   type SharingMode,
 } from '@kisanmitra/shared';
 import { db } from './db.js';
+import { enqueue, enqueueAll } from './outbox.js';
 import type { AppContext } from './seed.js';
 import type { LocalExpense, LocalKhata, LocalKhataPartner, LocalSale } from './types.js';
 
@@ -47,7 +48,7 @@ export async function saveKhata(
   const timestamp = now();
   const id = existingId ?? uuidv7();
 
-  await db.transaction('rw', [db.khatas, db.khataPartners], async () => {
+  await db.transaction('rw', [db.khatas, db.khataPartners, db.outbox], async () => {
     const existing = existingId ? await db.khatas.get(existingId) : undefined;
 
     const khata: LocalKhata = {
@@ -74,21 +75,32 @@ export async function saveKhata(
     };
     await db.khatas.put(khata);
 
-    // Partners are restated wholesale: editing the agreement replaces it.
+    await enqueue(null, 'khatas', khata);
+
+    // Partners are restated wholesale: editing the agreement replaces it. The
+    // ones dropped are soft-deleted rather than removed, so the change reaches
+    // every other phone instead of silently reappearing on the next pull.
     const previous = await db.khataPartners.where('khataId').equals(id).toArray();
-    await db.khataPartners.bulkDelete(previous.map((row) => row.id));
+    const removed = previous.map((row) => ({ ...row, deletedAt: timestamp, updatedAt: timestamp }));
+    if (removed.length > 0) {
+      await db.khataPartners.bulkPut(removed);
+      await enqueueAll(null, 'khataPartners', removed);
+    }
 
     if (input.partners.length > 0) {
-      await db.khataPartners.bulkPut(
-        input.partners.map((partner, index) => ({
-          id: uuidv7(),
-          khataId: id,
-          name: partner.name.trim(),
-          sharePercent: partner.sharePercent,
-          isSelf: partner.isSelf,
-          sortOrder: index,
-        })),
-      );
+      const rows = input.partners.map((partner, index) => ({
+        id: uuidv7(),
+        householdId: ctx.householdId,
+        khataId: id,
+        name: partner.name.trim(),
+        sharePercent: partner.sharePercent,
+        isSelf: partner.isSelf,
+        sortOrder: index,
+        updatedAt: timestamp,
+        deletedAt: null,
+      }));
+      await db.khataPartners.bulkPut(rows);
+      await enqueueAll(null, 'khataPartners', rows);
     }
   });
 
@@ -111,7 +123,7 @@ export async function listKhatas(householdId: string): Promise<LocalKhata[]> {
 
 export async function khataPartners(khataId: string): Promise<LocalKhataPartner[]> {
   const rows = await db.khataPartners.where('khataId').equals(khataId).toArray();
-  return rows.sort((a, b) => a.sortOrder - b.sortOrder);
+  return rows.filter((row) => row.deletedAt === null).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 /** Expenses and earnings in one khata, newest first. */

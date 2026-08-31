@@ -18,7 +18,7 @@ export async function partnersByKhata(householdId: string): Promise<PartnersByKh
   const rows = await db.khataPartners.where('khataId').anyOf(khatas.map((k) => k.id)).toArray();
 
   const map: PartnersByKhata = new Map();
-  for (const row of rows.sort((a, b) => a.sortOrder - b.sortOrder)) {
+  for (const row of rows.filter((r) => r.deletedAt === null).sort((a, b) => a.sortOrder - b.sortOrder)) {
     const list = map.get(row.khataId) ?? [];
     list.push({ name: row.name, sharePercent: row.sharePercent, isSelf: row.isSelf });
     map.set(row.khataId, list);
