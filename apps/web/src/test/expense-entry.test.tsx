@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App.js';
 import { db } from '../db/db.js';
+import { setPin } from '../db/lock.js';
 import { listExpenses, seasonTotal } from '../db/expenses.js';
 import '../i18n/index.js';
 
@@ -18,8 +19,20 @@ async function enterAmount(user: ReturnType<typeof userEvent.setup>, digits: str
   }
 }
 
-async function openManualEntry(user: ReturnType<typeof userEvent.setup>) {
+/** The app is behind a PIN, so every flow starts by getting through it. */
+const PIN = '1234';
+
+async function renderUnlocked(user: ReturnType<typeof userEvent.setup>) {
+  await setPin(PIN);
   render(<App />);
+  await screen.findByRole('heading', { name: 'अपना पिन डालें' });
+  for (const digit of PIN) {
+    await user.click(screen.getByRole('button', { name: digit }));
+  }
+}
+
+async function openManualEntry(user: ReturnType<typeof userEvent.setup>) {
+  await renderUnlocked(user);
   const manual = await screen.findByRole('button', { name: 'बिना फोटो के खर्च जोड़ें' });
   await user.click(manual);
   await screen.findByRole('heading', { name: 'नया खर्च' });
@@ -34,8 +47,8 @@ describe('adding an expense without a photo', () => {
     await user.click(screen.getByRole('button', { name: 'बीज' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    // Lands on the season register, with the new row in it.
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    // Returns to where the entry began — the home screen.
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
 
     const cycle = await db.cropCycles.toCollection().first();
     const rows = await listExpenses(cycle!.id);
@@ -56,8 +69,8 @@ describe('adding an expense without a photo', () => {
     await user.click(screen.getByRole('button', { name: 'खाद' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
-    // Shown twice: the season total and the row itself.
+    // The season total on the home screen reflects it immediately.
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
     expect(await screen.findAllByText('₹1,25,000')).not.toHaveLength(0);
     expect(screen.queryByText('₹125000')).not.toBeInTheDocument();
   });
@@ -94,7 +107,7 @@ describe('adding an expense without a photo', () => {
     await user.click(screen.getByRole('button', { name: 'मजदूरी' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
     const cycle = await db.cropCycles.toCollection().first();
     const rows = await listExpenses(cycle!.id);
     const now = new Date();
@@ -134,10 +147,11 @@ describe('editing and removing', () => {
     await user.click(screen.getByRole('button', { name: 'डीजल' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
     const cycle = await db.cropCycles.toCollection().first();
     const [before] = await listExpenses(cycle!.id);
 
+    await user.click(await screen.findByRole('button', { name: /इस सीजन का खर्च/ }));
     await user.click(await screen.findByRole('button', { name: /डीजल/ }));
     await user.click(await screen.findByRole('button', { name: 'बदलें' }));
     await screen.findByRole('heading', { name: 'खर्च बदलें' });
@@ -146,7 +160,9 @@ describe('editing and removing', () => {
     await user.click(screen.getByRole('button', { name: '9' }));
     await user.click(screen.getByRole('button', { name: 'बदलाव सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await waitFor(async () => {
+      expect((await listExpenses(cycle!.id))[0]!.amount).toBe(209);
+    });
     const after = await listExpenses(cycle!.id);
     expect(after).toHaveLength(1);
     expect(after[0]!.id).toBe(before!.id);
@@ -161,7 +177,8 @@ describe('editing and removing', () => {
     await user.click(screen.getByRole('button', { name: 'भाड़ा' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
+    await user.click(await screen.findByRole('button', { name: /इस सीजन का खर्च/ }));
     await user.click(await screen.findByRole('button', { name: /भाड़ा/ }));
     await user.click(await screen.findByRole('button', { name: 'हटाएं' }));
     await user.click(await screen.findByRole('button', { name: 'हां, हटाएं' }));
@@ -180,7 +197,7 @@ describe('editing and removing', () => {
 describe('the empty state', () => {
   it('tells the user what to do next', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderUnlocked(user);
     await user.click(await screen.findByRole('button', { name: /इस सीजन का खर्च/ }));
 
     const empty = await screen.findByText('अभी कोई खर्च नहीं जुड़ा।');
@@ -191,7 +208,8 @@ describe('the empty state', () => {
 
 describe('reference data', () => {
   it('is seeded once, locally, with client-generated ids', async () => {
-    render(<App />);
+    const user = userEvent.setup();
+    await renderUnlocked(user);
     await screen.findByRole('button', { name: 'बिना फोटो के खर्च जोड़ें' });
 
     await waitFor(async () => {
@@ -215,13 +233,13 @@ describe('sharing an expense with a partner', () => {
     await enterAmount(user, '4500');
     await user.click(screen.getByRole('button', { name: 'बीज' }));
 
-    await user.click(screen.getByRole('button', { name: 'साझेदार के साथ' }));
+    await user.click(screen.getByRole('button', { name: 'अलग बँटवारा' }));
     await user.type(await screen.findByLabelText(/साझेदार का नाम/), 'राम सिंह');
     // One tap for the common even split, rather than mental arithmetic.
     await user.click(screen.getByRole('button', { name: 'आधा-आधा' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
 
     const cycle = await db.cropCycles.toCollection().first();
     const rows = await listExpenses(cycle!.id);
@@ -241,7 +259,7 @@ describe('sharing an expense with a partner', () => {
 
     await enterAmount(user, '1000');
     await user.click(screen.getByRole('button', { name: 'खाद' }));
-    await user.click(screen.getByRole('button', { name: 'साझेदार के साथ' }));
+    await user.click(screen.getByRole('button', { name: 'अलग बँटवारा' }));
     await user.type(await screen.findByLabelText(/साझेदार का नाम/), 'श्याम');
     await user.type(screen.getByLabelText('उनका हिस्सा'), '4000');
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
@@ -259,7 +277,7 @@ describe('sharing an expense with a partner', () => {
 
     await enterAmount(user, '800');
     await user.click(screen.getByRole('button', { name: 'डीजल' }));
-    await user.click(screen.getByRole('button', { name: 'साझेदार के साथ' }));
+    await user.click(screen.getByRole('button', { name: 'अलग बँटवारा' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
     const alerts = await screen.findAllByRole('alert');
@@ -274,7 +292,7 @@ describe('sharing an expense with a partner', () => {
     await user.click(screen.getByRole('button', { name: 'मजदूरी' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
     const cycle = await db.cropCycles.toCollection().first();
     const rows = await listExpenses(cycle!.id);
     expect(rows[0]!.partnerName).toBeNull();
@@ -296,7 +314,7 @@ describe('what an expense was for', () => {
     await user.click(screen.getByRole('button', { name: 'लीटर' }));
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
-    await screen.findByRole('heading', { name: /इस सीजन का हिसाब/ });
+    await screen.findByRole('heading', { name: 'किसान मित्र' });
     const cycle = await db.cropCycles.toCollection().first();
     const rows = await listExpenses(cycle!.id);
     expect(rows[0]!.product).toBe('डीजल');
@@ -306,7 +324,8 @@ describe('what an expense was for', () => {
   });
 
   it('seeds the crops the household actually grows, not just potato', async () => {
-    render(<App />);
+    const user = userEvent.setup();
+    await renderUnlocked(user);
     await screen.findByRole('button', { name: 'बिना फोटो के खर्च जोड़ें' });
     await waitFor(async () => {
       expect(await db.crops.count()).toBe(6);

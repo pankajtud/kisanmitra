@@ -1,4 +1,4 @@
-import { parseAmount, today } from '@kisanmitra/shared';
+import { parseAmount, selfPercent as ownPercent, today, type SharingMode } from '@kisanmitra/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,10 +8,11 @@ import { DateField } from '../../components/DateField.js';
 import { PhotoPreview } from '../../components/PhotoPreview.js';
 import { Screen } from '../../components/Screen.js';
 import { TextField } from '../../components/TextField.js';
-import { PartnerShareField } from '../../components/PartnerShareField.js';
+import { SharingField } from '../../components/SharingField.js';
 import { QuantityField } from '../../components/QuantityField.js';
 import { SuggestField } from '../../components/SuggestField.js';
 import { getExpense, knownPartners, knownProducts, saveExpense } from '../../db/expenses.js';
+import { khataPartners, listKhatas } from '../../db/khata.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalExpense } from '../../db/types.js';
 import { useCategories, useCrops, useFields } from '../../hooks/useAppData.js';
@@ -42,6 +43,11 @@ export function ExpenseForm({
   const refLabel = useRefLabel();
   const crops = useCrops(ctx.householdId);
   const partners = useLiveQuery(() => knownPartners(ctx.householdId), [ctx.householdId], []);
+  const khatas = useLiveQuery(
+    async () => (await listKhatas(ctx.householdId)).filter((k) => k.status === 'open'),
+    [ctx.householdId],
+    [],
+  );
   const products = useLiveQuery(() => knownProducts(ctx.householdId), [ctx.householdId], []);
   const fields = useFields(ctx.householdId);
 
@@ -52,7 +58,8 @@ export function ExpenseForm({
   const [fieldId, setFieldId] = useState<string | null>(null);
   const [vendor, setVendor] = useState('');
   const [notes, setNotes] = useState('');
-  const [shared, setShared] = useState(false);
+  const [khataId, setKhataId] = useState<string | null>(null);
+  const [sharingMode, setSharingMode] = useState<SharingMode>('khata');
   const [partnerName, setPartnerName] = useState('');
   const [partnerShare, setPartnerShare] = useState('');
   const [cropId, setCropId] = useState<string | null>(null);
@@ -81,7 +88,8 @@ export function ExpenseForm({
       setFieldId(row.fieldId);
       setVendor(row.vendor ?? '');
       setNotes(row.notes ?? '');
-      setShared(row.partnerName !== null || row.partnerShare !== null);
+      setKhataId(row.khataId);
+      setSharingMode((row.sharingMode as SharingMode) ?? 'khata');
       setPartnerName(row.partnerName ?? '');
       setPartnerShare(row.partnerShare === null ? '' : String(row.partnerShare));
       setCropId(row.cropId);
@@ -93,6 +101,21 @@ export function ExpenseForm({
       cancelled = true;
     };
   }, [expenseId]);
+
+  // With one open khata there is nothing to ask; with none, the expense simply
+  // has no khata and still records fine.
+  useEffect(() => {
+    if (!expenseId && khataId === null && khatas.length === 1) setKhataId(khatas[0]!.id);
+  }, [expenseId, khataId, khatas]);
+
+  const khataShares = useLiveQuery(
+    async () => (khataId ? await khataPartners(khataId) : []),
+    [khataId],
+    [],
+  );
+  const selfPct = ownPercent(
+    khataShares.map((p) => ({ name: p.name, sharePercent: p.sharePercent, isSelf: p.isSelf })),
+  );
 
   if (loaded === undefined) {
     return (
@@ -118,7 +141,7 @@ export function ExpenseForm({
   const handleSave = async () => {
     const parsed = parseAmount(amount);
     const share = parseAmount(partnerShare);
-    const isShared = shared;
+    const isShared = sharingMode === 'custom';
 
     const next: typeof errors = {};
     if (parsed === null || parsed === 0) next.amount = t('expense.amountMissing');
@@ -147,6 +170,8 @@ export function ExpenseForm({
           fieldId,
           vendor: vendor.trim() || null,
           notes: notes.trim() || null,
+          khataId,
+          sharingMode,
           partnerName: isShared ? partnerName.trim() : null,
           partnerShare: isShared ? (share ?? 0) : null,
           cropId,
@@ -242,20 +267,27 @@ export function ExpenseForm({
           emptyChoiceLabel={t('expense.fieldAll')}
         />
 
-        <PartnerShareField
+        {khatas.length > 0 ? (
+          <ChoiceGrid
+            legend={t('khata.selectLabel')}
+            choices={khatas.map((k) => ({ id: k.id, label: k.name }))}
+            value={khataId}
+            onChange={setKhataId}
+          />
+        ) : null}
+
+        <SharingField
           amount={parseAmount(amount)}
+          mode={sharingMode}
+          onModeChange={setSharingMode}
           partnerName={partnerName}
           partnerShare={partnerShare}
           onPartnerNameChange={setPartnerName}
           onPartnerShareChange={setPartnerShare}
-          shared={shared}
-          onSharedChange={setShared}
-          onClear={() => {
-            setShared(false);
-            setPartnerName('');
-            setPartnerShare('');
-          }}
           knownPartners={partners}
+          selfPercent={selfPct}
+          khataName={khatas.find((k) => k.id === khataId)?.name ?? null}
+          shareLabel={t('expense.myShare')}
           errors={{ name: errors.partnerName, share: errors.partnerShare }}
         />
 

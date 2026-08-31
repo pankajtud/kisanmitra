@@ -1,25 +1,27 @@
-import { formatRupees, parseAmount, today, type GradePackets } from '@kisanmitra/shared';
+import {
+  formatRupees,
+  parseAmount,
+  selfPercent as ownPercent,
+  today,
+  type GradePackets,
+  type SharingMode,
+} from '@kisanmitra/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChoiceGrid } from '../../components/ChoiceGrid.js';
 import { DateField } from '../../components/DateField.js';
 import { GradeMark } from '../../components/GradeMark.js';
-import { PartnerShareField } from '../../components/PartnerShareField.js';
+import { SharingField } from '../../components/SharingField.js';
 import { QuantityField } from '../../components/QuantityField.js';
 import { Screen } from '../../components/Screen.js';
 import { Stepper } from '../../components/Stepper.js';
 import { SuggestField } from '../../components/SuggestField.js';
 import { TextField } from '../../components/TextField.js';
 import { knownPartners } from '../../db/expenses.js';
-import {
-  getSale,
-  knownBuyers,
-  lotPosition,
-  saleGradeRows,
-  saleTotal,
-  saveSale,
-} from '../../db/stock.js';
+import { khataPartners, listKhatas } from '../../db/khata.js';
+import { getSale, knownBuyers, saleGradeRows, saleTotal, saveSale } from '../../db/stock.js';
+import { lotPosition } from '../../db/inventory.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalSale } from '../../db/types.js';
 import { useCrops, useFields, useGrades } from '../../hooks/useAppData.js';
@@ -71,7 +73,8 @@ export function SaleForm({
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('');
   const [rate, setRate] = useState('');
-  const [shared, setShared] = useState(false);
+  const [khataId, setKhataId] = useState<string | null>(null);
+  const [sharingMode, setSharingMode] = useState<SharingMode>('khata');
   const [partnerName, setPartnerName] = useState('');
   const [partnerShare, setPartnerShare] = useState('');
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -93,7 +96,8 @@ export function SaleForm({
       setQuantity(sale.quantity === null ? '' : String(sale.quantity));
       setUnit(sale.unit ?? '');
       setRate(sale.ratePerPacket === null ? '' : String(sale.ratePerPacket));
-      setShared(sale.partnerName !== null || sale.partnerShare !== null);
+      setKhataId(sale.khataId);
+      setSharingMode((sale.sharingMode as SharingMode) ?? 'khata');
       setPartnerName(sale.partnerName ?? '');
       setPartnerShare(sale.partnerShare === null ? '' : String(sale.partnerShare));
       setLines(
@@ -111,6 +115,24 @@ export function SaleForm({
   useEffect(() => {
     if (!saleId && cropId === null && sellable.length === 1) setCropId(sellable[0]!.id);
   }, [saleId, cropId, sellable]);
+
+  const khatas = useLiveQuery(
+    async () => (await listKhatas(ctx.householdId)).filter((k) => k.status === 'open'),
+    [ctx.householdId],
+    [],
+  );
+  useEffect(() => {
+    if (!saleId && khataId === null && khatas.length === 1) setKhataId(khatas[0]!.id);
+  }, [saleId, khataId, khatas]);
+
+  const khataShares = useLiveQuery(
+    async () => (khataId ? await khataPartners(khataId) : []),
+    [khataId],
+    [],
+  );
+  const selfPct = ownPercent(
+    khataShares.map((p) => ({ name: p.name, sharePercent: p.sharePercent, isSelf: p.isSelf })),
+  );
 
   const crop = crops.find((c) => c.id === cropId);
   const effectiveUnit = unit || crop?.defaultUnit || '';
@@ -137,7 +159,7 @@ export function SaleForm({
 
   const handleSave = async () => {
     const share = parseAmount(partnerShare);
-    const isShared = shared;
+    const isShared = sharingMode === 'custom';
     const next: Record<string, string | undefined> = {};
 
     if (lotId) {
@@ -163,6 +185,8 @@ export function SaleForm({
           soldOn,
           buyer: buyer.trim() || null,
           notes: notes.trim() || null,
+          khataId,
+          sharingMode,
           cropId,
           fieldId,
           lines,
@@ -349,23 +373,28 @@ export function SaleForm({
           placeholder={t('sale.buyerPlaceholder')}
         />
 
-        <PartnerShareField
+        {khatas.length > 0 ? (
+          <ChoiceGrid
+            legend={t('khata.selectLabel')}
+            choices={khatas.map((k) => ({ id: k.id, label: k.name }))}
+            value={khataId}
+            onChange={setKhataId}
+          />
+        ) : null}
+
+        <SharingField
           amount={total}
+          mode={sharingMode}
+          onModeChange={setSharingMode}
           partnerName={partnerName}
           partnerShare={partnerShare}
           onPartnerNameChange={setPartnerName}
           onPartnerShareChange={setPartnerShare}
-          shared={shared}
-          onSharedChange={setShared}
-          onClear={() => {
-            setShared(false);
-            setPartnerName('');
-            setPartnerShare('');
-          }}
           knownPartners={partners}
-          errors={{ name: errors.partnerName, share: errors.partnerShare }}
+          selfPercent={selfPct}
+          khataName={khatas.find((k) => k.id === khataId)?.name ?? null}
           shareLabel={t('sale.myIncome')}
-          promptLabel={t('sale.sharedIncome')}
+          errors={{ name: errors.partnerName, share: errors.partnerShare }}
         />
 
         <TextField

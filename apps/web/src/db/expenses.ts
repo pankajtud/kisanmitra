@@ -16,7 +16,11 @@ export interface ExpenseInput {
   notes: string | null;
   entryMethod: LocalExpense['entryMethod'];
   receiptId?: string | null;
-  /** Who the cost was shared with. Null when the household paid it all. */
+  /** The khata this expense belongs to. */
+  khataId: string | null;
+  /** 'khata' follows the agreed split, 'none' is all the household's, 'custom' overrides in rupees. */
+  sharingMode: 'khata' | 'none' | 'custom';
+  /** Who the cost was shared with, when overriding. */
   partnerName: string | null;
   /** The partner's portion in rupees. */
   partnerShare: number | null;
@@ -93,6 +97,8 @@ export async function saveReceiptDraft(
     amount: null,
     vendor: null,
     notes: null,
+    khataId: null,
+    sharingMode: 'khata',
     partnerName: null,
     partnerShare: null,
     cropId: null,
@@ -146,6 +152,8 @@ export async function saveExpense(
       amount: input.amount,
       vendor: input.vendor,
       notes: input.notes,
+      khataId: input.khataId,
+      sharingMode: input.sharingMode,
       partnerName: input.partnerName,
       partnerShare: input.partnerShare,
       cropId: input.cropId,

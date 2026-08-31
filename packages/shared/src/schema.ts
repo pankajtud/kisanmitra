@@ -99,6 +99,55 @@ export const crops = pgTable('crops', {
   archivedAt: timestamp('archived_at', { withTimezone: true }),
 });
 
+/**
+ * A खाता — the record for one venture, usually one crop for one season.
+ *
+ * Every expense and every earning belongs to exactly one khata, and the khata
+ * is what gets settled: at the end, partners square up against its balance and
+ * it is closed. This is the unit a farmer actually thinks in.
+ */
+export const khatas = pgTable('khatas', {
+  id: uuid('id').primaryKey(),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id),
+  cropCycleId: uuid('crop_cycle_id').references(() => cropCycles.id),
+  /** Null for a khata that is not about one crop — odds and ends, a side venture. */
+  cropId: uuid('crop_id').references(() => crops.id),
+  /** What the farmer calls it: 'आलू 2025-26'. */
+  name: text('name').notNull(),
+  openedOn: date('opened_on').notNull(),
+  /** 'open' | 'settled'. A settled khata is read-only. */
+  status: text('status').notNull().default('open'),
+  settledOn: date('settled_on'),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+});
+
+/**
+ * Who shares this khata, and in what proportion. The household itself is one of
+ * these rows (`is_self`), so the shares always add up to the whole venture.
+ *
+ * Shares are percentages here because that is how a partnership is agreed —
+ * "half and half" — while an individual entry that departs from the agreement
+ * is overridden in rupees on the entry itself.
+ */
+export const khataPartners = pgTable('khata_partners', {
+  id: uuid('id').primaryKey(),
+  khataId: uuid('khata_id')
+    .notNull()
+    .references(() => khatas.id, { onDelete: 'cascade' }),
+  /** A partner is a name, not an account: they do not use the app. */
+  name: text('name').notNull(),
+  sharePercent: numeric('share_percent', { precision: 5, scale: 2 }).notNull(),
+  /** True for the household's own row. Exactly one per khata. */
+  isSelf: boolean('is_self').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+});
+
 export const coldStores = pgTable('cold_stores', {
   id: uuid('id').primaryKey(),
   householdId: uuid('household_id')
@@ -110,23 +159,50 @@ export const coldStores = pgTable('cold_stores', {
 
 /* -------------------------------------------------------------------- stock */
 
+/**
+ * One consignment put into storage: what it is, when it went in, and — crucially
+ * — *one* cold store. An entry may occupy several lots inside that store, but it
+ * never spans two stores; if produce goes to two places, that is two entries.
+ */
+export const inventoryEntries = pgTable('inventory_entries', {
+  id: uuid('id').primaryKey(),
+  householdId: uuid('household_id')
+    .notNull()
+    .references(() => households.id),
+  cropCycleId: uuid('crop_cycle_id').references(() => cropCycles.id),
+  /** Ties the stock, and the sales out of it, to a khata's earnings. */
+  khataId: uuid('khata_id').references(() => khatas.id),
+  cropId: uuid('crop_id').references(() => crops.id),
+  /** Exactly one location. This is the invariant the whole table exists to hold. */
+  coldStoreId: uuid('cold_store_id').references(() => coldStores.id),
+  storedOn: date('stored_on').notNull(),
+  variety: text('variety'), // '37-97', '302'
+  fieldId: uuid('field_id').references(() => fields.id),
+  notes: text('notes'),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+});
+
+/**
+ * A lot is a *place inside a cold store* holding part of an entry, identified by
+ * the number written on the paper register ('91/251'). One entry can sit across
+ * several of them.
+ *
+ * `lot_no` stays opaque text: '91/251' looks like store-lot / packets but does
+ * not hold for '129/321' or '354/55', so nothing is derived from it
+ * (CLAUDE.md §15.1, docs/open-questions.md Q1).
+ */
 export const lots = pgTable('lots', {
   id: uuid('id').primaryKey(),
   householdId: uuid('household_id')
     .notNull()
     .references(() => households.id),
-  cropCycleId: uuid('crop_cycle_id')
-    .notNull()
-    .references(() => cropCycles.id),
-  coldStoreId: uuid('cold_store_id').references(() => coldStores.id),
-  cropId: uuid('crop_id').references(() => crops.id),
-  /** Opaque text, exactly as written on paper ('91/251'). Derive nothing from it — CLAUDE.md §15.1. */
+  entryId: uuid('entry_id').references(() => inventoryEntries.id, { onDelete: 'cascade' }),
   lotNo: text('lot_no').notNull(),
   serialNo: integer('serial_no'), // S. NO. in the paper register
-  storedOn: date('stored_on').notNull(),
   roomRack: text('room_rack'),
-  variety: text('variety'), // '37-97', '302'
-  fieldId: uuid('field_id').references(() => fields.id),
   notes: text('notes'),
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -160,6 +236,10 @@ export const sales = pgTable('sales', {
     .notNull()
     .references(() => households.id),
   cropCycleId: uuid('crop_cycle_id').references(() => cropCycles.id),
+  /** Every earning belongs to exactly one khata. */
+  khataId: uuid('khata_id').references(() => khatas.id),
+  /** See expenses.sharing_mode. */
+  sharingMode: text('sharing_mode').notNull().default('khata'),
   /**
    * Null for anything not sold out of cold storage. Wheat and mustard go
    * straight from the field to the buyer and never become a lot, so a sale
@@ -283,6 +363,15 @@ export const expenses = pgTable('expenses', {
    */
   partnerShare: numeric('partner_share', { precision: 12, scale: 2 }),
 
+  /** Every expense belongs to exactly one khata. */
+  khataId: uuid('khata_id').references(() => khatas.id),
+  /**
+   * How this entry is split:
+   *   'khata'  — follow the khata's partner shares (the default)
+   *   'none'   — entirely the household's own
+   *   'custom' — use partner_name and partner_share on this row
+   */
+  sharingMode: text('sharing_mode').notNull().default('khata'),
   /** Which crop the money was spent on. Null = the whole farm. */
   cropId: uuid('crop_id').references(() => crops.id),
   /** What was actually bought: 'यूरिया', 'DAP'. Free text with autocomplete. */

@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { CameraButton } from '../../components/CameraButton.js';
 import { OfflineBar } from '../../components/OfflineBar.js';
 import { seasonTotal } from '../../db/expenses.js';
-import { seasonIncome, stockSummary } from '../../db/stock.js';
+import { seasonIncome } from '../../db/stock.js';
+import { inventorySummary } from '../../db/inventory.js';
 import { useCropCycle } from '../../hooks/useAppData.js';
 import type { AppContext } from '../../db/seed.js';
 
@@ -22,6 +23,7 @@ export function HomeScreen({
   onManualEntry,
   onSeeExpenses,
   onSeeStock,
+  onSeeKhatas,
   onAddLot,
   onSeeSales,
   onSettings,
@@ -32,6 +34,7 @@ export function HomeScreen({
   onManualEntry: () => void;
   onSeeExpenses: () => void;
   onSeeStock: () => void;
+  onSeeKhatas: () => void;
   onAddLot: () => void;
   onSeeSales: () => void;
   onSettings: () => void;
@@ -41,7 +44,7 @@ export function HomeScreen({
   const cycle = useCropCycle(ctx.cropCycleId);
   const expenses = useLiveQuery(() => seasonTotal(ctx.cropCycleId), [ctx.cropCycleId]);
   const income = useLiveQuery(() => seasonIncome(ctx.cropCycleId), [ctx.cropCycleId]);
-  const stock = useLiveQuery(() => stockSummary(ctx.cropCycleId), [ctx.cropCycleId]);
+  const stock = useLiveQuery(() => inventorySummary(ctx.cropCycleId), [ctx.cropCycleId]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
@@ -84,7 +87,7 @@ export function HomeScreen({
         >
           <span className="block text-lg font-semibold text-ink-soft">{t('home.stockLabel')}</span>
           <span className="tabular mt-1 block text-3xl font-bold text-brand-dark">
-            {stock && stock.lotCount > 0
+            {stock && stock.entryCount > 0
               ? t('home.packetsLeft', { count: stock.remaining })
               : t('home.noStock')}
           </span>
@@ -118,6 +121,10 @@ export function HomeScreen({
               {t('home.addSale')}
             </button>
           </div>
+
+          <button type="button" onClick={onSeeKhatas} className="btn-secondary w-full text-lg">
+            {t('khata.all')}
+          </button>
 
           <button type="button" onClick={onManualEntry} className="btn-quiet w-full text-base">
             {t('home.addExpenseManual')}

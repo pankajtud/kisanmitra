@@ -12,6 +12,9 @@ import type {
   Crop,
   Grade,
   Household,
+  InventoryEntry,
+  Khata,
+  KhataPartner,
   Lot,
   LotGrade,
   Receipt,
@@ -38,6 +41,9 @@ export type SyncState = 'pending' | 'syncing' | 'synced' | 'failed';
  */
 export type ExpenseStatus = 'draft' | 'confirmed';
 
+/** Re-exported so callers need not reach into the shared domain for it. */
+export type { SharingMode } from '@kisanmitra/shared';
+
 type Local<T> = T & { syncState: SyncState };
 
 /** Timestamps are ISO strings locally: IndexedDB keeps Date objects, but strings compare and sort predictably across a version upgrade. */
@@ -61,6 +67,14 @@ export type LocalCrop = Stringify<Crop>;
 
 /* ------------------------------------------------------------------- stock */
 
+export type LocalKhata = Local<Stringify<Khata>>;
+
+/** Shares are percentages, held as numbers locally for arithmetic. */
+export type LocalKhataPartner = Omit<KhataPartner, 'sharePercent'> & { sharePercent: number };
+
+export type LocalInventoryEntry = Local<Stringify<InventoryEntry>>;
+
+/** A lot is a place inside one cold store, holding part of an entry. */
 export type LocalLot = Local<Stringify<Lot>>;
 /** Packets per grade in a lot. Scoped through its parent lot, not household_id. */
 export type LocalLotGrade = LotGrade;

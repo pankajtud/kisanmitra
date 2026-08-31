@@ -29,6 +29,20 @@
       "when": 1788096763254,
       "tag": "0003_crops_and_produce_sales",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788163534740,
+      "tag": "0004_khatas_and_inventory_entries",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788163558274,
+      "tag": "0005_lots_become_locations",
+      "breakpoints": true
     }
   ]
 }

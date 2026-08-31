@@ -7,9 +7,15 @@ See [CLAUDE.md](CLAUDE.md) for the product rules — it is the spec, not a summa
 of one. See [docs/open-questions.md](docs/open-questions.md) for what is still
 unknown and what was assumed in the meantime.
 
-**Shipped so far:** M0 (scaffold), M1 (expenses offline), the stock register
-and sales (M5–M6, brought forward), cost and income sharing with partners, and
-editable field names.
+**Shipped so far:** M0 (scaffold), M1 (expenses offline), khatas with partner
+settlement, inventory and sales (M5–M6, brought forward), and a PIN gate.
+
+A **खाता** is the record for one venture — usually one crop for one season.
+Every expense and earning belongs to exactly one, and settling it closes it.
+Partners are set on the khata as percentages and inherited by every entry.
+
+**Inventory** is separate: one consignment in exactly one cold store, occupying
+one or more lots inside it, sold down in instalments.
 
 Sales are of *produce* — potato out of cold storage, wheat and mustard straight
 off the field. See [docs/open-questions.md](docs/open-questions.md) Q14–Q16 for
@@ -63,8 +69,22 @@ season cost and earned.
 All of it on the phone, none of it needing a network.
 
 Every money figure shown is the household's **own share**: a joint tractor bill
-or a partnership crop counts only their half. The billed figure sits alongside
-so the two are never confused.
+or a partnership crop counts only their half. The gross figure sits alongside so
+the two are never confused — a partner asking "what did we make?" and the
+household asking "what did I make?" are different questions.
+
+## Protection
+
+The app is behind a 4-digit PIN (PBKDF2, salted, never stored in the clear, with
+back-off on wrong guesses and auto-lock after five minutes in the background).
+
+**This is a gate, not encryption.** Records stay readable to anyone who attaches
+a debugger to the browser. It stops someone picking up the phone, which is the
+actual threat here — the public URL was never one, because there is no server
+and every record lives only on the device that entered it. Real per-user
+protection arrives with accounts at M2.
+
+There is no PIN reset, deliberately: this is a household's only copy.
 
 The photo is downscaled to 1600 px / q0.8 and written to IndexedDB before
 anything else happens, along with a draft expense — so an interrupted capture

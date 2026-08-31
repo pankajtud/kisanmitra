@@ -7,6 +7,7 @@ export * from './types.js';
 export * from './domain/constants.js';
 export * from './domain/dates.js';
 export * from './domain/ids.js';
+export * from './domain/khata.js';
 export * from './domain/lot.js';
 export * from './domain/money.js';
 export * from './domain/sharing.js';

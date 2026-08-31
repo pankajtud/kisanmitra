@@ -1,108 +1,20 @@
 /**
- * The stock register and sales against it. Local-first like everything else:
- * nothing here awaits the network (CLAUDE.md §2.1).
+ * Sales — of produce, from anywhere.
+ *
+ * Cold storage is one route a sale can take, not the only one: potato comes out
+ * of a lot in instalments, wheat goes straight from the field to the buyer. The
+ * stock those lot sales draw down lives in `inventory.ts`.
  */
-import { remainingByGrade, totalHouseholdShare, uuidv7, type GradePackets } from '@kisanmitra/shared';
+import { totalHouseholdShare, uuidv7 } from '@kisanmitra/shared';
 import { db } from './db.js';
 import type { AppContext } from './seed.js';
-import type { LocalLot, LocalLotGrade, LocalSale, LocalSaleGrade } from './types.js';
+import type { LocalSale, LocalSaleGrade } from './types.js';
 
 function now(): string {
   return new Date().toISOString();
 }
 
-/* ------------------------------------------------------------------- lots */
-
-export interface LotInput {
-  /** Exactly as written on paper. Opaque text — nothing is derived from it (§15.1). */
-  lotNo: string;
-  serialNo: number | null;
-  storedOn: string;
-  coldStoreId: string | null;
-  roomRack: string | null;
-  variety: string | null;
-  fieldId: string | null;
-  notes: string | null;
-  cropId: string | null;
-  /** Packets per grade. Zero-packet grades are dropped, as the register omits them. */
-  packets: GradePackets[];
-}
-
-export async function saveLot(
-  ctx: AppContext,
-  input: LotInput,
-  existingId?: string,
-): Promise<string> {
-  const timestamp = now();
-  const id = existingId ?? uuidv7();
-
-  await db.transaction('rw', [db.lots, db.lotGrades], async () => {
-    const existing = existingId ? await db.lots.get(existingId) : undefined;
-
-    const lot: LocalLot = {
-      id,
-      householdId: ctx.householdId,
-      cropCycleId: existing?.cropCycleId ?? ctx.cropCycleId,
-      coldStoreId: input.coldStoreId,
-      cropId: input.cropId,
-      lotNo: input.lotNo,
-      serialNo: input.serialNo,
-      storedOn: input.storedOn,
-      roomRack: input.roomRack,
-      variety: input.variety,
-      fieldId: input.fieldId,
-      notes: input.notes,
-      createdBy: existing?.createdBy ?? ctx.userId,
-      createdAt: existing?.createdAt ?? timestamp,
-      updatedAt: timestamp,
-      deletedAt: null,
-      syncState: 'pending',
-    };
-    await db.lots.put(lot);
-
-    // Replace the breakdown wholesale: editing a lot is re-stating what is in
-    // it, and a grade removed from the form must disappear from the register.
-    const previous = await db.lotGrades.where('lotId').equals(id).toArray();
-    await db.lotGrades.bulkDelete(previous.map((row) => row.id));
-
-    const rows: LocalLotGrade[] = input.packets
-      .filter((entry) => entry.packets > 0)
-      .map((entry) => ({
-        id: uuidv7(),
-        lotId: id,
-        gradeId: entry.gradeId,
-        packets: entry.packets,
-      }));
-    if (rows.length > 0) await db.lotGrades.bulkPut(rows);
-  });
-
-  return id;
-}
-
-/** Soft delete. The lot and its sales stay (§2.7). */
-export async function deleteLot(id: string): Promise<void> {
-  const existing = await db.lots.get(id);
-  if (!existing) return;
-  const timestamp = now();
-  await db.lots.put({ ...existing, deletedAt: timestamp, updatedAt: timestamp, syncState: 'pending' });
-}
-
 const isLive = <T extends { deletedAt: string | null }>(row: T) => row.deletedAt === null;
-
-export async function listLots(cropCycleId: string): Promise<LocalLot[]> {
-  const rows = await db.lots.where('cropCycleId').equals(cropCycleId).filter(isLive).toArray();
-  return rows.sort(
-    (a, b) => b.storedOn.localeCompare(a.storedOn) || b.createdAt.localeCompare(a.createdAt),
-  );
-}
-
-export function getLot(id: string): Promise<LocalLot | undefined> {
-  return db.lots.get(id);
-}
-
-export function lotGrades(lotId: string): Promise<LocalLotGrade[]> {
-  return db.lotGrades.where('lotId').equals(lotId).toArray();
-}
 
 /* ------------------------------------------------------------------ sales */
 
@@ -119,6 +31,8 @@ export interface SaleInput {
   soldOn: string;
   buyer: string | null;
   notes: string | null;
+  khataId: string | null;
+  sharingMode: 'khata' | 'none' | 'custom';
   cropId: string | null;
   fieldId: string | null;
   /** Packets and rate per grade — grades often fetch different rates (§6). Lot sales only. */
@@ -169,6 +83,8 @@ export async function saveSale(
       householdId: ctx.householdId,
       cropCycleId: existing?.cropCycleId ?? ctx.cropCycleId,
       lotId,
+      khataId: input.khataId,
+      sharingMode: input.sharingMode,
       cropId: input.cropId,
       fieldId: input.fieldId,
       soldOn: input.soldOn,
@@ -260,45 +176,4 @@ export function getSale(id: string): Promise<LocalSale | undefined> {
 
 export function saleGradeRows(saleId: string): Promise<LocalSaleGrade[]> {
   return db.saleGrades.where('saleId').equals(saleId).toArray();
-}
-
-/* -------------------------------------------------------- what is left */
-
-/** Every grade sold out of a lot, across all its instalments. */
-export async function soldPackets(lotId: string): Promise<GradePackets[]> {
-  const sales = await listSales(lotId);
-  if (sales.length === 0) return [];
-
-  const rows = await db.saleGrades
-    .where('saleId')
-    .anyOf(sales.map((sale) => sale.id))
-    .toArray();
-
-  return rows.map((row) => ({ gradeId: row.gradeId, packets: row.packets }));
-}
-
-/** The stock position for one lot: stored, sold and remaining, per grade. */
-export async function lotPosition(lotId: string) {
-  const [stored, sold] = await Promise.all([
-    lotGrades(lotId).then((rows) => rows.map((r) => ({ gradeId: r.gradeId, packets: r.packets }))),
-    soldPackets(lotId),
-  ]);
-  return { stored, sold, remaining: remainingByGrade(stored, sold) };
-}
-
-/** Season totals for the home screen: packets in, packets left, money taken. */
-export async function stockSummary(cropCycleId: string) {
-  const lots = await listLots(cropCycleId);
-  let stored = 0;
-  let remaining = 0;
-  let revenue = 0;
-
-  for (const lot of lots) {
-    const position = await lotPosition(lot.id);
-    stored += position.stored.reduce((sum, row) => sum + row.packets, 0);
-    remaining += position.remaining.reduce((sum, row) => sum + row.remaining, 0);
-    for (const sale of await listSales(lot.id)) revenue += sale.totalAmount ?? 0;
-  }
-
-  return { lotCount: lots.length, stored, remaining, revenue };
 }

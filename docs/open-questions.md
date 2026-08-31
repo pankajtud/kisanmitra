@@ -115,6 +115,67 @@ but nothing yet needs to aggregate across units, and it would be a table to
 manage for no gain. Revisit at M7, where converting between units to get a
 cost-per-unit is a real question.
 
+### Q17. "Lot" now means something different from CLAUDE.md §5 — IMPORTANT
+
+§5's glossary says a lot is **"one deposit into cold storage"**. As of the
+2026-08-31 conversation it is **a location inside a cold store**, and the
+deposit is a new thing above it:
+
+```
+inventory_entry   one consignment, in exactly ONE cold store
+  └── lot         a numbered place inside that store ('91/251')
+        └── lot_grades   packets per grade
+              └── sales  drawn down in instalments
+```
+
+An entry may occupy several lots; it may never span two cold stores. That
+invariant is the reason the table exists.
+
+→ **§5's glossary and §6's SQL both need updating.** The old `lots` columns
+(cold store, crop, stored-on, variety, field) moved up to `inventory_entries` in
+migration 0004, which backfills one entry per existing lot so nothing was lost.
+0005 then drops them.
+
+This may also bear on Q1: if `91/251` is a *location* rather than a count, the
+"store lot / packets" reading was never right, and the mismatches in `129/321`
+and `354/55` stop being anomalies. Worth checking against the paper register.
+
+### Q18. Khata is now the organising unit — ANSWERED
+
+A खाता is the record for one venture, usually one crop for one season. Every
+expense and every earning belongs to exactly one. Decisions taken:
+
+- **Partner shares live on the khata**, as percentages, and every entry inherits
+  them. An entry can override: `sharing_mode` is `khata` (follow the agreement),
+  `none` (all the household's), or `custom` (a rupee split on the row).
+- **"Generic or common" means odds and ends inside one khata** — a repair, a tea
+  stall bill. There is no cross-khata allocation, and no farm-wide overhead
+  bucket to split at settlement.
+- **Settlement closes a khata.** It computes each partner's slice from the
+  *gross* balance and the agreed percentages, and the khata becomes read-only.
+  Rounding drift is absorbed by the household's own row so the parts always add
+  back to the whole.
+- A settled khata can be reopened; it does not lock permanently.
+
+### Q19. What protection is actually in place — and what is not
+
+The link was never the exposure. There is no server: every record lives in
+IndexedDB on the phone that entered it, so opening the URL gets an empty app.
+
+What is now in place is a **4-digit PIN gate** — PBKDF2-SHA256, salted, the PIN
+itself never stored, back-off after repeated wrong guesses, auto-lock after five
+minutes in the background.
+
+→ **It is a gate, not encryption.** Anyone who attaches a debugger to the
+browser can still read the records. Encrypting them would mean encrypting every
+indexed field and losing offline querying, which §2.1 does not permit. There is
+also deliberately **no PIN reset**: this is a household's only copy and no path
+may destroy it.
+
+Real per-user protection is M2's accounts, still blocked on DLT registration for
+OTP (§4). **That registration has not been started — it takes days and blocks
+auth testing.**
+
 ### Q13. What order do grades go in inside the composite notation?
 
 The §5 example reads `21H+83G+7K+10M` — not the grade sort order (M, G, H, K,

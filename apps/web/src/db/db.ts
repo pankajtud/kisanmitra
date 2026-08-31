@@ -17,6 +17,9 @@ import type {
   LocalField,
   LocalGrade,
   LocalHousehold,
+  LocalInventoryEntry,
+  LocalKhata,
+  LocalKhataPartner,
   LocalLot,
   LocalLotGrade,
   LocalPhoto,
@@ -38,6 +41,9 @@ export class KisanMitraDb extends Dexie {
   expenses!: EntityTable<LocalExpense, 'id'>;
   receipts!: EntityTable<LocalReceipt, 'id'>;
   photos!: EntityTable<LocalPhoto, 'receiptId'>;
+  khatas!: EntityTable<LocalKhata, 'id'>;
+  khataPartners!: EntityTable<LocalKhataPartner, 'id'>;
+  inventoryEntries!: EntityTable<LocalInventoryEntry, 'id'>;
   lots!: EntityTable<LocalLot, 'id'>;
   lotGrades!: EntityTable<LocalLotGrade, 'id'>;
   sales!: EntityTable<LocalSale, 'id'>;
@@ -79,6 +85,35 @@ export class KisanMitraDb extends Dexie {
       // not belong to a lot at all.
       sales: 'id, householdId, lotId, cropId, cropCycleId, soldOn, [lotId+soldOn], [cropCycleId+soldOn], syncState',
     });
+
+    // v4 makes the khata the unit everything hangs off, and separates a stored
+    // consignment (one cold store) from the lots it occupies inside it.
+    this.version(4)
+      .stores({
+        khatas: 'id, householdId, cropCycleId, cropId, status, syncState',
+        khataPartners: 'id, khataId',
+        inventoryEntries: 'id, householdId, khataId, cropCycleId, coldStoreId, storedOn, syncState',
+        lots: 'id, householdId, entryId, lotNo, syncState',
+        expenses:
+          'id, householdId, cropCycleId, khataId, [khataId+spentOn], [cropCycleId+spentOn], categoryId, syncState, status',
+      })
+      .upgrade(async (tx) => {
+        // Rows written before this version have no sharing mode. 'khata' is the
+        // default and means "follow the agreed split", which for a khata with no
+        // partners is the whole amount — so existing totals do not move.
+        await tx
+          .table('expenses')
+          .toCollection()
+          .modify((row: { sharingMode?: string }) => {
+            row.sharingMode ??= 'khata';
+          });
+        await tx
+          .table('sales')
+          .toCollection()
+          .modify((row: { sharingMode?: string }) => {
+            row.sharingMode ??= 'khata';
+          });
+      });
   }
 }
 
