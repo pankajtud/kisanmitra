@@ -128,6 +128,20 @@ export class KisanMitraDb extends Dexie {
           row.durationMonths ??= null;
         });
     });
+
+    // v6 indexes the keys the app actually queries by. Three were missing, and
+    // each threw `KeyPath ... is not indexed` the moment its screen opened: a
+    // khata's earnings, and the two counts behind the field editor.
+    // `src/test/schema.test.ts` now checks every query against this schema, so
+    // the next missing index fails a test rather than a farmer's screen.
+    this.version(6).stores({
+      sales:
+        'id, householdId, lotId, cropId, cropCycleId, khataId, soldOn, [lotId+soldOn], [cropCycleId+soldOn], [khataId+soldOn], syncState',
+      expenses:
+        'id, householdId, cropCycleId, khataId, fieldId, [cropCycleId+spentOn], [khataId+spentOn], categoryId, syncState, status',
+      inventoryEntries:
+        'id, householdId, khataId, cropCycleId, cropId, coldStoreId, fieldId, storedOn, syncState',
+    });
   }
 }
 

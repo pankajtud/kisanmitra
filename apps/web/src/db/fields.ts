@@ -66,11 +66,21 @@ export async function listFields(householdId: string, includeArchived = false) {
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-/** How many records point at a field — shown before archiving, so the user knows what it affects. */
+/**
+ * How many records point at a field — shown before archiving, so the user knows
+ * what it affects.
+ *
+ * Counted against inventory *entries*, not lots: a lot is a place inside a cold
+ * store and has no field of its own; the consignment it belongs to does.
+ */
 export async function fieldUsage(fieldId: string): Promise<{ expenses: number; lots: number }> {
   const [expenses, lots] = await Promise.all([
     db.expenses.where('fieldId').equals(fieldId).filter((e) => e.deletedAt === null).count(),
-    db.lots.where('fieldId').equals(fieldId).filter((l) => l.deletedAt === null).count(),
+    db.inventoryEntries
+      .where('fieldId')
+      .equals(fieldId)
+      .filter((e) => e.deletedAt === null)
+      .count(),
   ]);
   return { expenses, lots };
 }
