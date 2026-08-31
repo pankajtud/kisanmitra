@@ -135,6 +135,10 @@ export async function ensureSeeded(now = new Date()): Promise<AppContext> {
         name: SEED_COLD_STORE,
         // Per packet per season or per month is still open (§15.5). Not guessed.
         rentPerPacket: null,
+        // Everything is assumed to go here unless told otherwise.
+        isDefault: true,
+        sortOrder: 0,
+        archivedAt: null,
       });
     },
   );

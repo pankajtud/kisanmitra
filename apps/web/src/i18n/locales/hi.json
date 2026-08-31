@@ -210,7 +210,8 @@
     "title": "सेटिंग",
     "fields": "खेत",
     "language": "भाषा",
-    "about": "ऐप के बारे में"
+    "about": "ऐप के बारे में",
+    "stores": "कोल्ड स्टोर"
   },
   "stepper": {
     "more": "एक और",
@@ -314,7 +315,21 @@
     "emptyAction": "नीचे का बटन दबाकर माल रखें।",
     "lotCount_one": "{{count}} लॉट",
     "lotCount_other": "{{count}} लॉट",
-    "save": "सेव करें"
+    "save": "सेव करें",
+    "yearBook": "{{season}} का माल",
+    "entryCount_one": "{{count}} एंट्री",
+    "entryCount_other": "{{count}} एंट्रियां",
+    "colLot": "लॉट",
+    "colPackets": "बोरे",
+    "colRack": "कमरा",
+    "colVariety": "किस्म",
+    "colField": "खेत",
+    "colDate": "तारीख",
+    "colStore": "स्टोर",
+    "full": "पूरा",
+    "partial": "कुछ बिका",
+    "soldOut": "बिक गया",
+    "legend": "रंग: हरा = पूरा, पीला = कुछ बिका, स्लेटी = बिक गया"
   },
   "nav": {
     "label": "मुख्य मेन्यू",
@@ -323,5 +338,19 @@
     "stock": "माल",
     "expenses": "खर्च",
     "sales": "बिक्री"
+  },
+  "stores": {
+    "title": "कोल्ड स्टोर",
+    "add": "नया कोल्ड स्टोर जोड़ें",
+    "namePlaceholder": "कोल्ड स्टोर का नाम",
+    "rename": "नाम बदलें",
+    "default": "डिफ़ॉल्ट",
+    "makeDefault": "इसे डिफ़ॉल्ट बनाएं",
+    "archive": "हटाएं",
+    "restore": "वापस लाएं",
+    "archived": "हटाए गए",
+    "inUse": "{{count}} एंट्री में",
+    "archiveQuestion": "यह कोल्ड स्टोर हटा दें? पुराने रिकॉर्ड वैसे ही रहेंगे।",
+    "empty": "अभी कोई कोल्ड स्टोर नहीं।"
   }
 }

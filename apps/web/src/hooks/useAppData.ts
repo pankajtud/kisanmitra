@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { db } from '../db/db.js';
+import { listColdStores } from '../db/coldStores.js';
 import { ensureSeeded, type AppContext } from '../db/seed.js';
 
 /** Reference data and the current household, straight out of the local database. */
@@ -74,8 +75,7 @@ export function useGrades(householdId: string | undefined) {
 
 export function useColdStores(householdId: string | undefined) {
   return useLiveQuery(
-    async () =>
-      householdId ? await db.coldStores.where('householdId').equals(householdId).toArray() : [],
+    async () => (householdId ? await listColdStores(householdId) : []),
     [householdId],
     [],
   );

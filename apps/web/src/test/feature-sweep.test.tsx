@@ -6,7 +6,7 @@
  * hit, because there is nothing on screen to explain it. Each test here opens a
  * screen for real and asserts something rendered.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.js';
@@ -178,17 +178,23 @@ describe('inventory screens', () => {
     });
   }
 
-  it('lists a consignment and opens its detail', async () => {
+  it('lists lots as register rows and opens the consignment behind one', async () => {
     await stock();
     const user = userEvent.setup();
     await unlocked(user);
 
     await user.click(screen.getByRole('button', { name: 'माल' }));
-    await user.click(await screen.findByRole('button', { name: /91\/251|आलू/ }));
 
-    // The lot and its remaining packets in the register's notation.
-    expect(await screen.findByText('91/251')).toBeInTheDocument();
-    expect(screen.getAllByText(/111/).length).toBeGreaterThan(0);
+    // A table with the register's columns, one row per lot.
+    const table = await screen.findByRole('table');
+    expect(within(table).getByRole('columnheader', { name: 'लॉट' })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: 'बोरे' })).toBeInTheDocument();
+
+    const lotCell = within(table).getByRole('button', { name: '91/251' });
+    expect(within(table).getByText(/111/)).toBeInTheDocument();
+
+    await user.click(lotCell);
+    expect(await screen.findByText('2/14')).toBeInTheDocument();
   });
 
   it('opens the form for a new consignment', async () => {
@@ -200,6 +206,29 @@ describe('inventory screens', () => {
 
     expect(await screen.findByRole('heading', { name: 'माल रखें' })).toBeInTheDocument();
     expect(screen.getByText('एक एंट्री सिर्फ एक कोल्ड स्टोर की होती है')).toBeInTheDocument();
+  });
+});
+
+describe('cold stores', () => {
+  it('adds a second store from settings and offers it on a new consignment', async () => {
+    const user = userEvent.setup();
+    await unlocked(user);
+
+    await user.click(screen.getByRole('button', { name: 'सेटिंग' }));
+    await user.click(await screen.findByRole('button', { name: 'कोल्ड स्टोर' }));
+
+    await user.type(screen.getByLabelText(/नया कोल्ड स्टोर जोड़ें/), 'Sharma Cold Storage');
+    await user.click(screen.getByRole('button', { name: 'नया कोल्ड स्टोर जोड़ें' }));
+
+    // G.L. stays the default; the new one sits alongside it.
+    expect(await screen.findByText('Sharma Cold Storage')).toBeInTheDocument();
+    expect(screen.getByText('डिफ़ॉल्ट')).toBeInTheDocument();
+
+    await waitFor(async () => {
+      const stores = await db.coldStores.where('householdId').equals(ctx.householdId).toArray();
+      expect(stores).toHaveLength(2);
+      expect(stores.filter((s) => s.isDefault)).toHaveLength(1);
+    });
   });
 });
 

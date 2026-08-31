@@ -6,7 +6,7 @@
  * occupy several **lots**, each a numbered place holding a grade breakdown.
  * Sales are recorded against a lot.
  */
-import { remainingByGrade, uuidv7, type GradePackets } from '@kisanmitra/shared';
+import { remainingByGrade, seasonLabel, uuidv7, type GradePackets } from '@kisanmitra/shared';
 import { db } from './db.js';
 import type { AppContext } from './seed.js';
 import type { LocalInventoryEntry, LocalLot, LocalLotGrade } from './types.js';
@@ -249,4 +249,81 @@ export async function storesWithStock(
 ): Promise<string[]> {
   const lots = await availableLots(cropCycleId, { cropId });
   return [...new Set(lots.map((l) => l.entry.coldStoreId).filter(Boolean) as string[])];
+}
+
+export interface StockRow {
+  lot: LocalLot;
+  entry: LocalInventoryEntry;
+  stored: number;
+  sold: number;
+  remaining: number;
+  /** Remaining, in the register's composite notation. */
+  breakdown: { code: string; packets: number; sortOrder: number }[];
+  status: 'full' | 'partial' | 'soldOut';
+}
+
+export interface StockYearBook {
+  season: string;
+  rows: StockRow[];
+  entryCount: number;
+  stored: number;
+  remaining: number;
+}
+
+/**
+ * The stock register, one row per lot, gathered into a book per year.
+ *
+ * A lot is the unit the paper register writes a line for, so it is the unit
+ * this lists — a consignment across three lots is three lines, as it is on
+ * paper (CLAUDE.md §9). The year a row falls in is decided by the day the
+ * produce went in, the same rule the khata books use.
+ */
+export async function stockYearBooks(
+  householdId: string,
+  grades: readonly { id: string; code: string; sortOrder: number }[],
+): Promise<StockYearBook[]> {
+  const entries = (await db.inventoryEntries.where('householdId').equals(householdId).toArray())
+    .filter(isLive)
+    .sort((a, b) => b.storedOn.localeCompare(a.storedOn));
+
+  const books = new Map<string, StockYearBook>();
+
+  for (const entry of entries) {
+    const season = seasonLabel(entry.storedOn);
+    let book = books.get(season);
+    if (!book) {
+      book = { season, rows: [], entryCount: 0, stored: 0, remaining: 0 };
+      books.set(season, book);
+    }
+    book.entryCount += 1;
+
+    for (const lot of await entryLots(entry.id)) {
+      const position = await lotPosition(lot.id);
+      const stored = position.stored.reduce((sum, r) => sum + r.packets, 0);
+      const remaining = position.remaining.reduce((sum, r) => sum + r.remaining, 0);
+
+      const breakdown = [];
+      for (const row of position.remaining) {
+        const grade = grades.find((g) => g.id === row.gradeId);
+        if (grade && row.remaining > 0) {
+          breakdown.push({ code: grade.code, packets: row.remaining, sortOrder: grade.sortOrder });
+        }
+      }
+
+      book.rows.push({
+        lot,
+        entry,
+        stored,
+        sold: stored - remaining,
+        remaining,
+        breakdown,
+        // Colour-coded on screen: nothing gone, some gone, all gone.
+        status: remaining <= 0 ? 'soldOut' : remaining === stored ? 'full' : 'partial',
+      });
+      book.stored += stored;
+      book.remaining += remaining;
+    }
+  }
+
+  return [...books.values()].sort((a, b) => b.season.localeCompare(a.season));
 }

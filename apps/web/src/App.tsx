@@ -14,6 +14,7 @@ import { KhataForm } from './features/khata/KhataForm.js';
 import { KhataList } from './features/khata/KhataList.js';
 import { SettingsScreen } from './features/settings/SettingsScreen.js';
 import { FieldsScreen } from './features/settings/FieldsScreen.js';
+import { StoresScreen } from './features/settings/StoresScreen.js';
 import { SaleForm } from './features/stock/SaleForm.js';
 import { SalesList } from './features/stock/SalesList.js';
 import { saveReceiptDraft } from './db/expenses.js';
@@ -43,7 +44,8 @@ type Screen =
   | { name: 'sales' }
   | { name: 'saleForm'; lotId: string | null; saleId: string | null }
   | { name: 'settings' }
-  | { name: 'fields' };
+  | { name: 'fields' }
+  | { name: 'stores' };
 
 export function App() {
   const { t } = useTranslation();
@@ -229,6 +231,7 @@ export function App() {
       return (
         <SettingsScreen
           onFields={() => push({ name: 'fields' })}
+          onStores={() => push({ name: 'stores' })}
           onLock={lock}
           onBack={back}
         />
@@ -236,5 +239,8 @@ export function App() {
 
     case 'fields':
       return <FieldsScreen ctx={ctx} onBack={back} />;
+
+    case 'stores':
+      return <StoresScreen ctx={ctx} onBack={back} />;
   }
 }

@@ -186,6 +186,11 @@ export const coldStores = pgTable('cold_stores', {
     .references(() => households.id),
   name: text('name').notNull(), // 'G.L. Cold Storage, Chitaura'
   rentPerPacket: numeric('rent_per_packet', { precision: 10, scale: 2 }),
+  /** Preselected on a new consignment. Exactly one per household. */
+  isDefault: boolean('is_default').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  /** Archived, never deleted: inventory entries point at it (CLAUDE.md §2.7). */
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
 });
 
 /* -------------------------------------------------------------------- stock */

@@ -101,7 +101,7 @@ export type LocalUser = Stringify<User>;
 export type LocalCropCycle = CropCycle;
 export type LocalField = Stringify<Field>;
 export type LocalGrade = Grade;
-export type LocalColdStore = ColdStore;
+export type LocalColdStore = Stringify<ColdStore>;
 export type LocalExpenseCategory = ExpenseCategory;
 
 /**

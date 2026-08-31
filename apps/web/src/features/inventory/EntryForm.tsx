@@ -9,6 +9,7 @@ import { Screen } from '../../components/Screen.js';
 import { SuggestField } from '../../components/SuggestField.js';
 import { db } from '../../db/db.js';
 import { entryLots, getEntry, lotGrades, saveEntry, type LotInput } from '../../db/inventory.js';
+import { addColdStore, defaultColdStore } from '../../db/coldStores.js';
 import { listKhatas } from '../../db/khata.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalInventoryEntry } from '../../db/types.js';
@@ -64,6 +65,7 @@ export function EntryForm({
   const [variety, setVariety] = useState('');
   const [fieldId, setFieldId] = useState<string | null>(null);
   const [lots, setLots] = useState<LotInput[]>([{ lotNo: '', roomRack: null, packets: [] }]);
+  const [newStore, setNewStore] = useState('');
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   useEffect(() => {
@@ -101,11 +103,18 @@ export function EntryForm({
 
   // With one cold store, or one storable crop, there is nothing to ask.
   const storable = crops.filter((c) => c.usesColdStorage);
+  // Produce is assumed to go to the household's default store unless said
+  // otherwise, so the common case asks nothing.
   useEffect(() => {
-    if (entryId) return;
-    if (coldStoreId === null && coldStores.length === 1) setColdStoreId(coldStores[0]!.id);
-    if (cropId === null && storable.length === 1) setCropId(storable[0]!.id);
-  }, [entryId, coldStoreId, coldStores, cropId, storable]);
+    if (entryId || coldStoreId !== null) return;
+    void defaultColdStore(ctx.householdId).then((store) => {
+      if (store) setColdStoreId(store.id);
+    });
+  }, [entryId, coldStoreId, ctx.householdId, coldStores]);
+
+  useEffect(() => {
+    if (!entryId && cropId === null && storable.length === 1) setCropId(storable[0]!.id);
+  }, [entryId, cropId, storable]);
 
   const setLot = (index: number, patch: Partial<LotInput>) =>
     setLots((current) => current.map((lot, i) => (i === index ? { ...lot, ...patch } : lot)));
@@ -160,7 +169,7 @@ export function EntryForm({
       }
     >
       <div className="flex flex-col gap-6 pb-4">
-        {coldStores.length > 1 ? (
+        <div>
           <ChoiceGrid
             legend={t('inventory.storeLabel')}
             choices={coldStores.map((c) => ({ id: c.id, label: c.name }))}
@@ -168,8 +177,35 @@ export function EntryForm({
             onChange={setColdStoreId}
             error={errors.store}
           />
-        ) : null}
-        <p className="-mt-3 text-sm text-ink-soft">{t('inventory.oneStoreOnly')}</p>
+
+          {/* Produce that went somewhere new can be recorded without leaving
+              the form. The store is added to the household's list. */}
+          <div className="mt-2 flex items-start gap-2">
+            <input
+              type="text"
+              value={newStore}
+              onChange={(event) => setNewStore(event.target.value)}
+              placeholder={t('stores.namePlaceholder')}
+              aria-label={t('stores.add')}
+              className="input flex-1"
+            />
+            <button
+              type="button"
+              disabled={newStore.trim() === ''}
+              onClick={() => {
+                void addColdStore(ctx.householdId, newStore).then((id) => {
+                  if (id) setColdStoreId(id);
+                  setNewStore('');
+                });
+              }}
+              className="btn-secondary px-4"
+            >
+              {t('stores.add')}
+            </button>
+          </div>
+
+          <p className="mt-2 text-sm text-ink-soft">{t('inventory.oneStoreOnly')}</p>
+        </div>
 
         <DateField value={storedOn} onChange={setStoredOn} />
 

@@ -1,21 +1,25 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { formatLotBreakdown, formatRegisterDate, remainingBreakdown } from '@kisanmitra/shared';
+import { formatLotBreakdown, formatRegisterDate, seasonLabel, today } from '@kisanmitra/shared';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Screen } from '../../components/Screen.js';
 import type { NavTab } from '../../components/BottomNav.js';
-import { EmptyState, Rows, StatCard } from '../../components/ui.js';
-import { SyncBadge } from '../../components/SyncBadge.js';
-import { entryPosition, listEntries } from '../../db/inventory.js';
+import { Screen } from '../../components/Screen.js';
+import { EmptyState } from '../../components/ui.js';
+import { stockYearBooks, type StockRow } from '../../db/inventory.js';
 import type { AppContext } from '../../db/seed.js';
-import { useColdStores, useCrops, useFields, useGrades } from '../../hooks/useAppData.js';
+import { useColdStores, useFields, useGrades } from '../../hooks/useAppData.js';
 
 /**
- * What is in storage, and where.
+ * The stock register: one dense line per lot, the way the paper book is written
+ * (CLAUDE.md §9), gathered into a book per year like the khatas.
  *
- * Each row is one consignment in one cold store, showing what is *left* rather
- * than what went in — potatoes leave in instalments, and the question this
- * screen answers is how much is still there. The composite notation is the
- * register's own, through the single `formatLotBreakdown` helper (§5).
+ * A card per consignment was several lines tall and made four lots fill the
+ * screen. This is a table — columns, one row per lot, scannable down the page —
+ * with the lot number pinned to the left so it stays readable while the rest
+ * scrolls sideways.
+ *
+ * Colour carries meaning rather than decoration: green still full, amber part
+ * sold, grey sold out. That is the question a farmer opens this screen to ask.
  */
 export function InventoryList({
   ctx,
@@ -30,19 +34,21 @@ export function InventoryList({
 }) {
   const { t } = useTranslation();
   const grades = useGrades(ctx.householdId);
-  const crops = useCrops(ctx.householdId);
   const fields = useFields(ctx.householdId);
-  const coldStores = useColdStores(ctx.householdId);
+  const stores = useColdStores(ctx.householdId);
 
-  const entries = useLiveQuery(async () => {
-    const rows = await listEntries(ctx.cropCycleId);
-    return Promise.all(rows.map(async (entry) => ({ entry, position: await entryPosition(entry.id) })));
-  }, [ctx.cropCycleId]);
-
-  const totalRemaining = (entries ?? []).reduce(
-    (sum, row) => sum + row.position.remaining.reduce((n, g) => n + g.remaining, 0),
-    0,
+  const books = useLiveQuery(
+    () => stockYearBooks(ctx.householdId, grades),
+    [ctx.householdId, grades],
   );
+
+  const currentSeason = seasonLabel(today());
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
+  const isOpen = (season: string) => opened[season] ?? season === currentSeason;
+
+  const fieldName = (id: string | null) => fields.find((f) => f.id === id)?.name ?? '—';
+  const storeName = (id: string | null) => stores.find((s) => s.id === id)?.name ?? '—';
+  const manyStores = stores.length > 1;
 
   return (
     <Screen
@@ -55,61 +61,180 @@ export function InventoryList({
         </button>
       }
     >
-      <div className="mb-4">
-        <StatCard label={t('home.stockLabel')}>
-          <span className="tabular block text-4xl font-bold text-brand">
-            {t('home.packetsLeft', { count: totalRemaining })}
-          </span>
-        </StatCard>
-      </div>
-
-      {entries === undefined ? null : entries.length === 0 ? (
+      {books === undefined ? null : books.length === 0 ? (
         <EmptyState title={t('inventory.empty')} action={t('inventory.emptyAction')} />
       ) : (
-        <Rows>
-          {entries.map(({ entry, position }) => {
-            const left = remainingBreakdown(position.remaining, grades);
-            const soldOut = left.every((e) => e.packets <= 0);
-            const store = coldStores.find((c) => c.id === entry.coldStoreId);
-            const crop = crops.find((c) => c.id === entry.cropId);
-            const field = fields.find((f) => f.id === entry.fieldId);
-
+        <div className="flex flex-col gap-4">
+          {books.map((book) => {
+            const open = isOpen(book.season);
             return (
-              <li key={entry.id}>
+              <section key={book.season}>
                 <button
                   type="button"
-                  onClick={() => onOpen(entry.id)}
-                  className="card-tap w-full px-4 py-3"
+                  onClick={() => setOpened((o) => ({ ...o, [book.season]: !open }))}
+                  aria-expanded={open}
+                  className="card-tap mb-2 w-full px-4 py-3"
                 >
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-xl font-bold">
-                      {crop?.nameHi ?? t('inventory.title')}
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="tabular block text-xl font-bold">
+                        {t('inventory.yearBook', { season: book.season })}
+                      </span>
+                      <span className="mt-0.5 block text-sm text-ink-soft">
+                        {t('inventory.entryCount', { count: book.entryCount })} ·{' '}
+                        {t('inventory.lotCount', { count: book.rows.length })}
+                      </span>
                     </span>
-                    <span className="tabular shrink-0 text-sm font-medium text-ink-soft">
-                      {formatRegisterDate(entry.storedOn)}
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="tabular text-right">
+                        <span className="block text-2xl font-bold text-brand">{book.remaining}</span>
+                        <span className="block text-xs text-ink-soft">/ {book.stored}</span>
+                      </span>
+                      <Chevron open={open} />
                     </span>
-                  </span>
-
-                  <span className="tabular mt-1 block text-2xl font-bold text-brand">
-                    {soldOut ? t('stock.allSold') : formatLotBreakdown(left)}
-                  </span>
-
-                  {/* One entry, one cold store — the invariant, stated on screen. */}
-                  <span className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-soft">
-                    {store ? <span>{store.name}</span> : null}
-                    <span className="tabular">
-                      · {t('inventory.lotCount', { count: position.lots.length })}
-                    </span>
-                    {entry.variety ? <span className="tabular">· {entry.variety}</span> : null}
-                    {field ? <span>· {field.name}</span> : null}
-                    <SyncBadge state={entry.syncState} />
                   </span>
                 </button>
-              </li>
+
+                {open ? (
+                  <>
+                    {/* Wide content scrolls inside its own container; the page
+                        itself never scrolls sideways (§10). */}
+                    <div className="card overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="border-b-2 border-line bg-sunk">
+                            <Th sticky>{t('inventory.colLot')}</Th>
+                            <Th>{t('inventory.colPackets')}</Th>
+                            <Th>{t('inventory.colRack')}</Th>
+                            <Th>{t('inventory.colVariety')}</Th>
+                            <Th>{t('inventory.colField')}</Th>
+                            {manyStores ? <Th>{t('inventory.colStore')}</Th> : null}
+                            <Th>{t('inventory.colDate')}</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {book.rows.map((row, index) => (
+                            <Row
+                              key={row.lot.id}
+                              row={row}
+                              zebra={index % 2 === 1}
+                              onClick={() => onOpen(row.entry.id)}
+                              fieldName={fieldName(row.entry.fieldId)}
+                              storeName={manyStores ? storeName(row.entry.coldStoreId) : null}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mt-2 px-1 text-xs text-ink-soft">{t('inventory.legend')}</p>
+                  </>
+                ) : null}
+              </section>
             );
           })}
-        </Rows>
+        </div>
       )}
     </Screen>
+  );
+}
+
+function Th({ children, sticky = false }: { children: React.ReactNode; sticky?: boolean }) {
+  return (
+    <th
+      scope="col"
+      className={`px-2 py-2 text-xs font-bold whitespace-nowrap text-ink-soft ${
+        sticky ? 'sticky left-0 bg-sunk' : ''
+      }`}
+    >
+      {children}
+    </th>
+  );
+}
+
+/** Tint by how much of the lot is left — the reason to look at this screen. */
+const TINT = {
+  full: 'bg-credit-tint',
+  partial: 'bg-accent-tint',
+  soldOut: 'bg-sunk text-ink-soft',
+} as const;
+
+function Row({
+  row,
+  zebra,
+  onClick,
+  fieldName,
+  storeName,
+}: {
+  row: StockRow;
+  zebra: boolean;
+  onClick: () => void;
+  fieldName: string;
+  storeName: string | null;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <tr
+      onClick={onClick}
+      className={`cursor-pointer border-b border-line last:border-0 active:bg-brand-tint ${
+        zebra ? 'bg-black/[0.015]' : ''
+      }`}
+    >
+      <th
+        scope="row"
+        className={`tabular sticky left-0 px-2 py-2 text-left font-bold whitespace-nowrap ${
+          TINT[row.status]
+        }`}
+      >
+        {/* The row is tappable; the button carries the accessible action. */}
+        <button type="button" onClick={onClick} className="text-left">
+          {row.lot.lotNo}
+        </button>
+      </th>
+
+      <td className="tabular px-2 py-2 font-semibold whitespace-nowrap">
+        {row.status === 'soldOut' ? (
+          <span className="text-ink-soft">{t('inventory.soldOut')}</span>
+        ) : (
+          <span className={row.status === 'partial' ? 'text-accent' : 'text-credit'}>
+            {formatLotBreakdown(row.breakdown)}
+            {row.status === 'partial' ? (
+              <span className="ml-1 text-xs text-ink-soft">/ {row.stored}</span>
+            ) : null}
+          </span>
+        )}
+      </td>
+
+      <td className="tabular px-2 py-2 whitespace-nowrap">{row.lot.roomRack ?? '—'}</td>
+      <td className="tabular px-2 py-2 whitespace-nowrap">{row.entry.variety ?? '—'}</td>
+      <td className="px-2 py-2 whitespace-nowrap">{fieldName}</td>
+      {storeName !== null ? (
+        <td className="max-w-32 truncate px-2 py-2">{storeName}</td>
+      ) : null}
+      <td className="tabular px-2 py-2 whitespace-nowrap text-ink-soft">
+        {formatRegisterDate(row.entry.storedOn)}
+      </td>
+    </tr>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={open ? 'rotate-180 transition-transform' : 'transition-transform'}
+    >
+      <path
+        d="M6 9.5l6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

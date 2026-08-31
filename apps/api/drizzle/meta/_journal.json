@@ -57,6 +57,13 @@
       "when": 1788173932651,
       "tag": "0007_khata_field_and_plot_location",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788175534893,
+      "tag": "0008_cold_store_management",
+      "breakpoints": true
     }
   ]
 }

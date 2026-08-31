@@ -100,6 +100,9 @@ async function main() {
       // Rent per packet is unknown, and whether it is per season or per month
       // is open (CLAUDE.md §15.5). Left null rather than guessed.
       rentPerPacket: null,
+      // Everything is assumed to go here unless a consignment says otherwise.
+      isDefault: true,
+      sortOrder: 0,
     });
   });
 

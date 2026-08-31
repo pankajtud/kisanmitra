@@ -210,7 +210,8 @@
     "title": "Settings",
     "fields": "Fields",
     "language": "Language",
-    "about": "About this app"
+    "about": "About this app",
+    "stores": "Cold stores"
   },
   "stepper": {
     "more": "One more",
@@ -314,7 +315,21 @@
     "emptyAction": "Press the button below to store produce.",
     "lotCount_one": "{{count}} lot",
     "lotCount_other": "{{count}} lots",
-    "save": "Save"
+    "save": "Save",
+    "yearBook": "{{season}} stock",
+    "entryCount_one": "{{count}} entry",
+    "entryCount_other": "{{count}} entries",
+    "colLot": "Lot",
+    "colPackets": "Packets",
+    "colRack": "Rack",
+    "colVariety": "Variety",
+    "colField": "Field",
+    "colDate": "Date",
+    "colStore": "Store",
+    "full": "Full",
+    "partial": "Part sold",
+    "soldOut": "Sold out",
+    "legend": "Green = full, amber = part sold, grey = sold out"
   },
   "nav": {
     "label": "Main menu",
@@ -323,5 +338,19 @@
     "stock": "Stock",
     "expenses": "Expenses",
     "sales": "Sales"
+  },
+  "stores": {
+    "title": "Cold stores",
+    "add": "Add a cold store",
+    "namePlaceholder": "Cold store name",
+    "rename": "Rename",
+    "default": "Default",
+    "makeDefault": "Make this the default",
+    "archive": "Remove",
+    "restore": "Restore",
+    "archived": "Removed",
+    "inUse": "in {{count}} entries",
+    "archiveQuestion": "Remove this cold store? Old records stay as they are.",
+    "empty": "No cold stores yet."
   }
 }
