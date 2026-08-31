@@ -1,4 +1,6 @@
 import {
+  formatLotBreakdown,
+  formatRegisterDate,
   formatRupees,
   parseAmount,
   selfPercent as ownPercent,
@@ -21,10 +23,10 @@ import { TextField } from '../../components/TextField.js';
 import { knownPartners } from '../../db/expenses.js';
 import { khataPartners, listKhatas } from '../../db/khata.js';
 import { getSale, knownBuyers, saleGradeRows, saleTotal, saveSale } from '../../db/stock.js';
-import { lotPosition } from '../../db/inventory.js';
+import { availableLots, lotPosition } from '../../db/inventory.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalSale } from '../../db/types.js';
-import { useCrops, useFields, useGrades } from '../../hooks/useAppData.js';
+import { useColdStores, useCrops, useFields, useGrades } from '../../hooks/useAppData.js';
 import { useRefLabel } from '../../lib/labels.js';
 
 interface Line extends GradePackets {
@@ -42,13 +44,16 @@ interface Line extends GradePackets {
  */
 export function SaleForm({
   ctx,
-  lotId,
+  lotId: fixedLotId,
   saleId,
   onDone,
   onBack,
 }: {
   ctx: AppContext;
-  /** null for produce that never went into storage. */
+  /**
+   * Set when the sale was started from a lot's own page. Null when started from
+   * the sale screen, where the lot is chosen inside the form instead.
+   */
   lotId: string | null;
   saleId: string | null;
   onDone: () => void;
@@ -59,8 +64,20 @@ export function SaleForm({
   const grades = useGrades(ctx.householdId);
   const crops = useCrops(ctx.householdId);
   const fields = useFields(ctx.householdId);
+  const coldStores = useColdStores(ctx.householdId);
   const buyers = useLiveQuery(() => knownBuyers(ctx.householdId), [ctx.householdId], []);
   const partners = useLiveQuery(() => knownPartners(ctx.householdId), [ctx.householdId], []);
+  /**
+   * Whether this sale came out of storage. Only asked for a crop that uses cold
+   * storage — wheat has no lots to come out of, so the question would be noise.
+   */
+  const [fromStorage, setFromStorage] = useState<boolean | null>(
+    fixedLotId ? true : null,
+  );
+  const [pickedLotId, setPickedLotId] = useState<string | null>(fixedLotId);
+  const [pickedStoreId, setPickedStoreId] = useState<string | null>(null);
+
+  const lotId = fixedLotId ?? pickedLotId;
   const position = useLiveQuery(() => (lotId ? lotPosition(lotId) : null), [lotId]);
 
   const [loaded, setLoaded] = useState<LocalSale | null | undefined>(saleId ? undefined : null);
@@ -137,6 +154,26 @@ export function SaleForm({
   const crop = crops.find((c) => c.id === cropId);
   const effectiveUnit = unit || crop?.defaultUnit || '';
 
+  // What is actually in storage for this crop, so the lot list offers only lots
+  // with packets left in them.
+  const inStorage = useLiveQuery(
+    () => availableLots(ctx.cropCycleId, { cropId }),
+    [ctx.cropCycleId, cropId],
+    [],
+  );
+  const storeIds = [...new Set(inStorage.map((l) => l.entry.coldStoreId).filter(Boolean) as string[])];
+  const lotsHere = inStorage.filter(
+    (l) => !pickedStoreId || l.entry.coldStoreId === pickedStoreId,
+  );
+
+  // One store holding stock is not a question worth asking.
+  useEffect(() => {
+    if (fromStorage && pickedStoreId === null && storeIds.length === 1) {
+      setPickedStoreId(storeIds[0]!);
+    }
+  }, [fromStorage, pickedStoreId, storeIds]);
+
+
   const maxByGrade: Record<string, number> = {};
   for (const row of position?.remaining ?? []) {
     // Editing an existing sale must not count its own packets as already gone.
@@ -162,10 +199,12 @@ export function SaleForm({
     const isShared = sharingMode === 'custom';
     const next: Record<string, string | undefined> = {};
 
-    if (lotId) {
-      if (lines.every((l) => l.packets <= 0)) next.lines = t('sale.packetsMissing');
+    if (!cropId) next.crop = t('sale.cropMissing');
+
+    if (fromStorage) {
+      if (!lotId) next.lot = t('sale.lotMissing');
+      else if (lines.every((l) => l.packets <= 0)) next.lines = t('sale.packetsMissing');
     } else {
-      if (!cropId) next.crop = t('sale.cropMissing');
       if (quantity === '' || Number(quantity) <= 0) next.quantity = t('sale.quantityMissing');
     }
     if (isShared) {
@@ -180,7 +219,7 @@ export function SaleForm({
     try {
       await saveSale(
         ctx,
-        lotId,
+        fromStorage ? lotId : null,
         {
           soldOn,
           buyer: buyer.trim() || null,
@@ -242,6 +281,130 @@ export function SaleForm({
     >
       <div className="flex flex-col gap-6 pb-4">
         <DateField value={soldOn} onChange={setSoldOn} />
+
+        {/* What was sold. Everything below depends on this, so it comes first. */}
+        {!fixedLotId ? (
+          <ChoiceGrid
+            legend={t('sale.cropLabel')}
+            choices={crops.map((c) => ({
+              id: c.id,
+              label: refLabel({ labelHi: c.nameHi, labelEn: c.nameEn }),
+            }))}
+            value={cropId}
+            onChange={(next) => {
+              setCropId(next);
+              setPickedLotId(null);
+              setPickedStoreId(null);
+              const picked = crops.find((c) => c.id === next);
+              if (picked?.defaultUnit && unit === '') setUnit(picked.defaultUnit);
+              // Only a crop that goes into storage gets asked the question at
+              // all; anything else is a field sale by definition.
+              setFromStorage(picked?.usesColdStorage ? null : false);
+            }}
+            error={errors.crop}
+          />
+        ) : null}
+
+        {/* Asked only for a crop that uses cold storage. */}
+        {!fixedLotId && crop?.usesColdStorage ? (
+          <section>
+            <span className="label">{t('sale.fromStorageQuestion')}</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setFromStorage(true)}
+                aria-pressed={fromStorage === true}
+                className={fromStorage === true ? 'btn-primary flex-1' : 'btn-secondary flex-1'}
+              >
+                {t('sale.yes')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFromStorage(false);
+                  setPickedLotId(null);
+                }}
+                aria-pressed={fromStorage === false}
+                className={fromStorage === false ? 'btn-primary flex-1' : 'btn-secondary flex-1'}
+              >
+                {t('sale.no')}
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {/* Which store, then which lot — chosen from what is actually there. */}
+        {!fixedLotId && fromStorage ? (
+          inStorage.length === 0 ? (
+            <p className="card px-4 py-4 text-center text-lg text-ink-soft">{t('sale.noStock')}</p>
+          ) : (
+            <>
+              {storeIds.length > 1 ? (
+                <ChoiceGrid
+                  legend={t('sale.pickStore')}
+                  choices={storeIds.map((id) => ({
+                    id,
+                    label: coldStores.find((c) => c.id === id)?.name ?? id,
+                  }))}
+                  value={pickedStoreId}
+                  onChange={(next) => {
+                    setPickedStoreId(next);
+                    setPickedLotId(null);
+                  }}
+                />
+              ) : null}
+
+              <fieldset>
+                <legend className="label">{t('sale.pickLot')}</legend>
+                {errors.lot ? (
+                  <p className="error-text mb-2" role="alert">
+                    {errors.lot}
+                  </p>
+                ) : null}
+
+                <ul className="flex flex-col gap-2">
+                  {lotsHere.map(({ lot, entry, remaining, total }) => (
+                    <li key={lot.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPickedLotId(lot.id);
+                          setLines([]);
+                        }}
+                        aria-pressed={pickedLotId === lot.id}
+                        className={`card-tap w-full px-4 py-3 ${
+                          pickedLotId === lot.id ? 'border-brand bg-brand-tint' : ''
+                        }`}
+                      >
+                        <span className="flex items-baseline justify-between gap-2">
+                          <span className="tabular text-lg font-bold">{lot.lotNo}</span>
+                          <span className="tabular text-sm text-ink-soft">
+                            {formatRegisterDate(entry.storedOn)}
+                          </span>
+                        </span>
+                        <span className="tabular mt-0.5 block text-xl font-bold text-brand">
+                          {formatLotBreakdown(
+                            remaining.map((row) => ({
+                              code: grades.find((g) => g.id === row.gradeId)?.code ?? '?',
+                              packets: row.remaining,
+                              sortOrder: grades.find((g) => g.id === row.gradeId)?.sortOrder,
+                            })),
+                            { total },
+                          )}
+                        </span>
+                        <span className="mt-0.5 block text-sm text-ink-soft">
+                          {coldStores.find((c) => c.id === entry.coldStoreId)?.name}
+                          {lot.roomRack ? ` · ${lot.roomRack}` : ''}
+                          {entry.variety ? ` · ${entry.variety}` : ''}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </fieldset>
+            </>
+          )
+        ) : null}
 
         {lotId ? (
           /* Out of a lot: packets per grade, each at its own rate, capped at
@@ -305,23 +468,9 @@ export function SaleForm({
             </ul>
           </fieldset>
         ) : (
-          /* Straight off the field: what, how much, at what rate. */
+          /* Straight off the field: how much, at what rate. */
+          fromStorage === false ? (
           <>
-            <ChoiceGrid
-              legend={t('sale.cropLabel')}
-              choices={sellable.map((c) => ({
-                id: c.id,
-                label: refLabel({ labelHi: c.nameHi, labelEn: c.nameEn }),
-              }))}
-              value={cropId}
-              onChange={(next) => {
-                setCropId(next);
-                const picked = crops.find((c) => c.id === next);
-                if (picked?.defaultUnit && unit === '') setUnit(picked.defaultUnit);
-              }}
-              error={errors.crop}
-            />
-
             <div>
               <QuantityField
                 label={t('sale.quantityLabel')}
@@ -363,6 +512,7 @@ export function SaleForm({
               emptyChoiceLabel={t('expense.fieldAll')}
             />
           </>
+          ) : null
         )}
 
         <SuggestField

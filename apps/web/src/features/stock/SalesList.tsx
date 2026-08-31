@@ -3,6 +3,7 @@ import { formatRegisterDate, formatRupees } from '@kisanmitra/shared';
 import { useTranslation } from 'react-i18next';
 import { Money } from '../../components/Money.js';
 import { Screen } from '../../components/Screen.js';
+import type { NavTab } from '../../components/BottomNav.js';
 import { EmptyState, Rows, StatCard } from '../../components/ui.js';
 import { SyncBadge } from '../../components/SyncBadge.js';
 import { listSeasonSales, seasonIncome } from '../../db/stock.js';
@@ -22,12 +23,12 @@ export function SalesList({
   ctx,
   onOpen,
   onAddSale,
-  onBack,
+  onNavigate,
 }: {
   ctx: AppContext;
   onOpen: (saleId: string, lotId: string | null) => void;
   onAddSale: () => void;
-  onBack: () => void;
+  onNavigate: (tab: NavTab) => void;
 }) {
   const { t } = useTranslation();
   const refLabel = useRefLabel();
@@ -51,7 +52,8 @@ export function SalesList({
   return (
     <Screen
       title={t('sale.seasonTitle')}
-      onBack={onBack}
+      tab="sales"
+      onNavigate={onNavigate}
       action={
         <button type="button" onClick={onAddSale} className="btn-primary w-full text-xl">
           {t('sale.newSale')}

@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
  * Forms and detail screens present without it, so a task in progress still owns
  * the whole screen.
  */
-export type NavTab = 'home' | 'khatas' | 'inventory' | 'expenses';
+export type NavTab = 'home' | 'khatas' | 'inventory' | 'sales' | 'expenses';
 
 export function BottomNav({
   active,
@@ -27,6 +27,7 @@ export function BottomNav({
     { id: 'home', label: t('nav.home'), icon: HomeIcon },
     { id: 'khatas', label: t('nav.khatas'), icon: BookIcon },
     { id: 'inventory', label: t('nav.stock'), icon: SackIcon },
+    { id: 'sales', label: t('nav.sales'), icon: CoinIcon },
     { id: 'expenses', label: t('nav.expenses'), icon: ReceiptIcon },
   ];
 
@@ -44,12 +45,12 @@ export function BottomNav({
                 type="button"
                 onClick={() => onNavigate(tab.id)}
                 aria-current={selected ? 'page' : undefined}
-                className={`flex min-h-touch w-full flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+                className={`flex min-h-touch w-full flex-col items-center justify-center gap-0.5 px-0.5 py-2 transition-colors ${
                   selected ? 'text-brand' : 'text-ink-soft'
                 }`}
               >
                 {tab.icon(selected)}
-                <span className="text-xs font-semibold">{tab.label}</span>
+                <span className="text-[0.7rem] leading-tight font-semibold">{tab.label}</span>
               </button>
             </li>
           );
@@ -103,6 +104,23 @@ function SackIcon(active: boolean) {
         fillOpacity={active ? 0.15 : 0}
         {...stroke}
       />
+    </svg>
+  );
+}
+
+function CoinIcon(active: boolean) {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle
+        cx="12"
+        cy="12"
+        r="8.5"
+        stroke="currentColor"
+        fill={active ? 'currentColor' : 'none'}
+        fillOpacity={active ? 0.15 : 0}
+        {...stroke}
+      />
+      <path d="M9.5 9h5M12 9v6.5M9.5 12.5h5" stroke="currentColor" {...stroke} />
     </svg>
   );
 }

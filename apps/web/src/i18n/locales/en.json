@@ -175,7 +175,15 @@
     "title2": "Sale",
     "seasonTitle": "This season's sales",
     "empty": "No sales yet.",
-    "emptyAction": "Press the button below to record your first sale."
+    "emptyAction": "Press the button below to record your first sale.",
+    "fromStorageQuestion": "Is this from cold storage?",
+    "yes": "Yes",
+    "no": "No, from the field",
+    "pickStore": "Which cold store?",
+    "pickLot": "Which lot?",
+    "lotMissing": "Choose a lot",
+    "noStock": "Nothing of this crop is in cold storage",
+    "inLot": "Lot {{lot}}"
   },
   "fields": {
     "title": "Fields",
@@ -295,6 +303,7 @@
     "home": "Home",
     "khatas": "Khatas",
     "stock": "Stock",
-    "expenses": "Expenses"
+    "expenses": "Expenses",
+    "sales": "Sales"
   }
 }

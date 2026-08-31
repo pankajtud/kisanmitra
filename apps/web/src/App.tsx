@@ -213,10 +213,10 @@ export function App() {
         <SalesList
           ctx={ctx}
           onOpen={(saleId, lotId) => push({ name: 'saleForm', lotId, saleId })}
-          // A sale started from the season list is produce sold off the field;
-          // a lot sale is started from the lot it comes out of.
+          // Started here, the form asks what was sold and whether it came out
+          // of storage, then offers the lots that actually hold it.
           onAddSale={() => push({ name: 'saleForm', lotId: null, saleId: null })}
-          onBack={back}
+          onNavigate={navigate}
         />
       );
 

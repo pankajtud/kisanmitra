@@ -200,3 +200,53 @@ export async function inventorySummary(cropCycleId: string) {
 
   return { entryCount: entries.length, lotCount, stored, remaining };
 }
+
+export interface AvailableLot {
+  lot: LocalLot;
+  entry: LocalInventoryEntry;
+  /** Packets still in this lot, per grade. */
+  remaining: { gradeId: string; remaining: number }[];
+  total: number;
+}
+
+/**
+ * Every lot with packets still in it, newest consignment first.
+ *
+ * This is what lets a sale be started from the sale screen — pick the crop, say
+ * it came out of cold storage, and choose from what is actually there — rather
+ * than only from the lot's own page.
+ */
+export async function availableLots(
+  cropCycleId: string,
+  filter: { cropId?: string | null; coldStoreId?: string | null } = {},
+): Promise<AvailableLot[]> {
+  const entries = await listEntries(cropCycleId);
+  const out: AvailableLot[] = [];
+
+  for (const entry of entries) {
+    if (filter.cropId && entry.cropId !== filter.cropId) continue;
+    if (filter.coldStoreId && entry.coldStoreId !== filter.coldStoreId) continue;
+
+    for (const lot of await entryLots(entry.id)) {
+      const position = await lotPosition(lot.id);
+      const remaining = position.remaining
+        .filter((row) => row.remaining > 0)
+        .map((row) => ({ gradeId: row.gradeId, remaining: row.remaining }));
+
+      // A sold-out lot is not an option; it would only be a dead end.
+      const total = remaining.reduce((sum, row) => sum + row.remaining, 0);
+      if (total > 0) out.push({ lot, entry, remaining, total });
+    }
+  }
+
+  return out;
+}
+
+/** The cold stores that currently hold anything, for the store picker. */
+export async function storesWithStock(
+  cropCycleId: string,
+  cropId?: string | null,
+): Promise<string[]> {
+  const lots = await availableLots(cropCycleId, { cropId });
+  return [...new Set(lots.map((l) => l.entry.coldStoreId).filter(Boolean) as string[])];
+}
