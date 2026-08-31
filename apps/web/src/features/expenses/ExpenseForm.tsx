@@ -199,7 +199,7 @@ export function ExpenseForm({
       action={
         <>
           {errors.save ? (
-            <p className="mb-2 text-base font-semibold text-danger" role="alert">
+            <p className="mb-2 error-text" role="alert">
               {errors.save}
             </p>
           ) : null}

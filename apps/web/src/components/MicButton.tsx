@@ -27,7 +27,7 @@ export function MicButton({
   if (unavailable) {
     return (
       <span
-        className="flex size-touch shrink-0 items-center justify-center rounded-2xl border-2 border-rule text-ink-soft"
+        className="flex size-touch shrink-0 items-center justify-center rounded-2xl border-2 border-line text-ink-soft"
         title={unavailable}
         aria-label={unavailable}
       >
@@ -45,8 +45,8 @@ export function MicButton({
         aria-label={listening ? t('voice.stop') : `${t('voice.start')} — ${label}`}
         className={
           listening
-            ? 'flex size-touch items-center justify-center rounded-2xl bg-danger text-paper'
-            : 'flex size-touch items-center justify-center rounded-2xl border-2 border-brand bg-paper-raised text-brand-dark active:bg-brand-tint'
+            ? 'flex size-touch items-center justify-center rounded-2xl bg-danger text-white'
+            : 'flex size-touch items-center justify-center rounded-2xl border-2 border-brand bg-surface text-brand-ink active:bg-brand-tint'
         }
       >
         <MicIcon />

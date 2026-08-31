@@ -64,9 +64,9 @@ export function ExpenseDetail({
       <div className="flex flex-col gap-5">
         {expense.receiptId ? <PhotoPreview receiptId={expense.receiptId} /> : null}
 
-        <p className="tabular text-6xl font-bold text-rupee">{formatRupees(expense.amount)}</p>
+        <p className="tabular text-6xl font-bold text-debit">{formatRupees(expense.amount)}</p>
 
-        <dl className="card divide-y-2 divide-rule">
+        <dl className="card divide-y-2 divide-line">
           <Row label={t('expense.dateLabel')} value={formatRegisterDate(expense.spentOn)} tabular />
           <Row
             label={t('expense.categoryLabel')}

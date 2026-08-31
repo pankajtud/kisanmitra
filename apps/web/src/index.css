@@ -1,36 +1,57 @@
 @import 'tailwindcss';
 
 /**
- * The register is a paper ledger, so the app is ink on paper. Everything is
- * sized for a cracked screen, a thumb with soil on it, and direct sunlight
- * (CLAUDE.md §10). There is no light grey on white anywhere: the lightest text
- * token below still clears 7:1 on the page background.
+ * The register is a paper ledger, so the app is ink on paper — but clean paper,
+ * not drab. Everything is sized for a cracked screen, a thumb with soil on it,
+ * and direct sunlight (CLAUDE.md §10).
+ *
+ * Contrast floor: every text token clears 7:1 on the surface it sits on, so
+ * nothing here is the "light grey on white" §10 forbids.
  */
 @theme {
-  --color-paper: #faf7f0;
-  --color-paper-raised: #ffffff;
-  --color-rule: #d9d2c4;
+  /* Surfaces, warm rather than clinical. */
+  --color-paper: #fbf8f2;
+  --color-surface: #ffffff;
+  --color-sunk: #f3eee4;
+  --color-line: #e3dbcb;
+  --color-line-strong: #c6bba4;
 
-  --color-ink: #14180f;
-  --color-ink-soft: #4b4a3d; /* 8.2:1 on paper — readable, not decorative */
+  /* Ink. */
+  --color-ink: #1a1d17;
+  --color-ink-soft: #55594c;
 
-  --color-brand: #1b5e20;
-  --color-brand-dark: #123f16;
-  --color-brand-tint: #e6efe4;
+  /* Brand: a cleaner green than a ledger's, still dark enough to carry white. */
+  --color-brand: #1b6b3a;
+  --color-brand-strong: #12512b;
+  --color-brand-tint: #e4f0e7;
+  --color-brand-ink: #0e3a1e;
 
-  --color-rupee: #7a3e00;
-  --color-danger: #a4161a;
+  /* Money has a direction. Out is terracotta, in is green — legible at a glance
+     without reading the sign, which matters in a ledger of mixed rows. */
+  --color-debit: #a33b2a;
+  --color-debit-tint: #fbeae6;
+  --color-credit: #146c43;
+  --color-credit-tint: #e3f1e8;
+
+  /* Warm accent for highlights and badges. */
+  --color-accent: #b4690e;
+  --color-accent-tint: #fbf0df;
+
+  --color-danger: #9b1c1c;
   --color-danger-tint: #fbe9e9;
 
   --font-sans: 'Noto Sans Devanagari', 'Noto Sans', system-ui, -apple-system, sans-serif;
 
   /* Minimum touch target. Nothing tappable is ever smaller. */
   --spacing-touch: 3.5rem; /* 56px */
+
+  --shadow-card: 0 1px 2px rgb(26 29 23 / 0.05), 0 1px 3px rgb(26 29 23 / 0.04);
+  --shadow-lift: 0 2px 10px rgb(26 29 23 / 0.09);
 }
 
 html {
   background: var(--color-paper);
-  /* Bigger than a typical app: our reader may be 60 and reading Hindi slowly. */
+  /* Larger than a typical app: our reader may be 60 and reading Hindi slowly. */
   font-size: 18px;
   -webkit-text-size-adjust: 100%;
 }
@@ -39,8 +60,6 @@ body {
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-sans);
-  /* Room for the home indicator / gesture bar. */
-  padding-bottom: env(safe-area-inset-bottom);
   overscroll-behavior-y: none;
 }
 
@@ -50,44 +69,77 @@ body {
   font-feature-settings: 'tnum';
 }
 
-/* `btn` is a real utility, not a component class, so the variants below can
-   @apply it (Tailwind v4 only lets @apply reach registered utilities). */
+/**
+ * Declared with `@utility` rather than in a components layer so they compose:
+ * Tailwind v4 will only `@apply` a class that is itself a utility.
+ */
+
+/* ---------------------------------------------------------------- buttons */
 @utility btn {
-  display: inline-flex;
-  min-height: var(--spacing-touch);
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  border-radius: 1rem;
-  padding-inline: 1.5rem;
-  text-align: center;
-  font-weight: 600;
-  line-height: 1.2;
-  user-select: none;
-  transition: background-color 150ms;
+  @apply inline-flex min-h-touch items-center justify-center gap-2 rounded-2xl px-5
+         text-center font-semibold leading-tight transition-colors select-none
+         disabled:opacity-40;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-white shadow-[0_1px_2px_rgb(26_29_23/0.05)] active:bg-brand-strong;
+}
+@utility btn-secondary {
+  @apply btn border-2 border-brand bg-surface text-brand-ink active:bg-brand-tint;
+}
+@utility btn-quiet {
+  @apply btn text-ink-soft active:bg-sunk;
+}
+@utility btn-danger {
+  @apply btn border-2 border-danger bg-surface text-danger active:bg-danger-tint;
+}
+/* Small, for inline actions inside a row. Still 44px, never smaller. */
+@utility btn-sm {
+  @apply min-h-11 rounded-xl px-3 text-base;
 }
 
-@layer components {
-  .btn-primary {
-    @apply btn bg-brand text-paper active:bg-brand-dark;
-  }
-  .btn-secondary {
-    @apply btn border-2 border-brand bg-paper-raised text-brand-dark active:bg-brand-tint;
-  }
-  .btn-quiet {
-    @apply btn text-ink-soft active:bg-rule/40;
-  }
-  .btn-danger {
-    @apply btn border-2 border-danger bg-paper-raised text-danger active:bg-danger-tint;
-  }
+/* ------------------------------------------------------------------ cards */
+@utility card {
+  @apply rounded-2xl border border-line bg-surface;
+  box-shadow: var(--shadow-card);
+}
+/* A tappable card. The whole thing is the target, not a link inside it. */
+@utility card-tap {
+  @apply card w-full text-left transition-colors active:bg-brand-tint;
+}
 
-  .card {
-    @apply rounded-2xl border-2 border-rule bg-paper-raised;
-  }
+/* ------------------------------------------------------------------ forms */
+@utility label {
+  @apply mb-2 block text-lg font-semibold text-ink;
+}
+@utility input {
+  @apply min-h-touch w-full rounded-2xl border-2 border-line-strong bg-surface px-4 py-3
+         text-lg text-ink placeholder:text-ink-soft;
+}
+@utility input-error {
+  @apply border-danger;
+}
 
-  .label {
-    @apply mb-2 block text-lg font-semibold text-ink;
-  }
+/* --------------------------------------------------------------- feedback */
+@utility badge {
+  @apply inline-flex shrink-0 items-center rounded-full px-3 py-0.5 text-sm font-semibold;
+}
+@utility badge-open {
+  @apply badge bg-brand-tint text-brand-ink;
+}
+@utility badge-done {
+  @apply badge bg-sunk text-ink-soft;
+}
+@utility error-text {
+  @apply text-base font-semibold text-danger;
+}
+
+/* ----------------------------------------------------------------- layout */
+@utility section-title {
+  @apply mb-2 text-xl font-bold text-ink;
+}
+@utility screen-pad {
+  /* Clears the bottom navigation and the phone's gesture bar. */
+  @apply px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))];
 }
 
 /* Focus is always visible — keyboard, switch control, or a stylus (§10). */

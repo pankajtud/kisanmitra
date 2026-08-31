@@ -3,8 +3,12 @@ import { formatRegisterDate, formatRupees, relativeDayKey } from '@kisanmitra/sh
 import { useTranslation } from 'react-i18next';
 import { CameraButton } from '../../components/CameraButton.js';
 import { Screen } from '../../components/Screen.js';
+import type { NavTab } from '../../components/BottomNav.js';
+import { Money } from '../../components/Money.js';
+import { EmptyState, Rows, StatCard } from '../../components/ui.js';
 import { SyncBadge } from '../../components/SyncBadge.js';
-import { listExpenses } from '../../db/expenses.js';
+import { listExpenses, seasonTotal } from '../../db/expenses.js';
+import { partnersByKhata, shareOf } from '../../db/shares.js';
 import { db } from '../../db/db.js';
 import type { LocalExpense } from '../../db/types.js';
 import type { AppContext } from '../../db/seed.js';
@@ -16,12 +20,12 @@ export function ExpenseList({
   ctx,
   onOpen,
   onCapture,
-  onBack,
+  onNavigate,
 }: {
   ctx: AppContext;
   onOpen: (id: string) => void;
   onCapture: (file: File) => Promise<void>;
-  onBack: () => void;
+  onNavigate: (tab: NavTab) => void;
 }) {
   const { t } = useTranslation();
   const refLabel = useRefLabel();
@@ -36,12 +40,23 @@ export function ExpenseList({
   };
   const fieldName = (id: string | null) => fields.find((f) => f.id === id)?.name ?? null;
 
-  const total = (expenses ?? []).reduce((sum, e) => sum + (e.amount ?? 0), 0);
+  // The household's own share, netted of any partner's cut — the same figure
+  // the home screen and the khata balances use.
+  const summary = useLiveQuery(
+    () => seasonTotal(ctx.cropCycleId, ctx.householdId),
+    [ctx.cropCycleId, ctx.householdId],
+  );
+  const partners = useLiveQuery(
+    () => partnersByKhata(ctx.householdId),
+    [ctx.householdId],
+    new Map(),
+  );
 
   return (
     <Screen
       title={`${t('list.title')}${cycle ? ` · ${cycle.label}` : ''}`}
-      onBack={onBack}
+      tab="expenses"
+      onNavigate={onNavigate}
       action={
         <CameraButton
           onPhoto={onCapture}
@@ -52,29 +67,34 @@ export function ExpenseList({
         </CameraButton>
       }
     >
-      <div className="card mb-4 px-5 py-4">
-        <span className="block text-lg font-semibold text-ink-soft">{t('list.total')}</span>
-        <span className="tabular block text-4xl font-bold text-rupee">{formatRupees(total)}</span>
+      <div className="mb-4">
+        <StatCard
+          label={t('list.total')}
+          caption={
+            summary && summary.billed !== summary.total
+              ? `${t('list.billed')} ${formatRupees(summary.billed)} · ${t('list.yoursOnly')}`
+              : undefined
+          }
+        >
+          <Money amount={summary?.total ?? 0} tone="debit" size="xl" />
+        </StatCard>
       </div>
 
       {expenses === undefined ? null : expenses.length === 0 ? (
         /* An empty state says what to do next, in one sentence (§10). */
-        <div className="card px-5 py-8 text-center">
-          <p className="text-xl font-semibold">{t('list.empty')}</p>
-          <p className="mt-2 text-lg text-ink-soft">{t('list.emptyAction')}</p>
-        </div>
+        <EmptyState title={t('list.empty')} action={t('list.emptyAction')} />
       ) : (
         <ol className="flex flex-col gap-3">
           {groupByDay(expenses).map(([day, rows]) => (
             <li key={day}>
               <h2 className="tabular mb-2 text-lg font-bold text-ink-soft">{dayHeading(day, t)}</h2>
-              <ul className="flex flex-col gap-2">
+              <Rows>
                 {rows.map((expense) => (
                   <li key={expense.id}>
                     <button
                       type="button"
                       onClick={() => onOpen(expense.id)}
-                      className="card flex min-h-touch w-full items-center gap-3 px-4 py-3 text-left active:bg-brand-tint"
+                      className="card-tap flex min-h-touch w-full items-center gap-3 px-4 py-3"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-lg font-semibold">
@@ -88,13 +108,17 @@ export function ExpenseList({
                           <SyncBadge state={expense.syncState} />
                         </span>
                       </span>
-                      <span className="tabular shrink-0 text-2xl font-bold text-rupee">
-                        {formatRupees(expense.amount)}
-                      </span>
+                      <Money
+                        amount={shareOf(expense, partners)}
+                        gross={expense.amount}
+                        tone="debit"
+                        size="md"
+                        className="shrink-0"
+                      />
                     </button>
                   </li>
                 ))}
-              </ul>
+              </Rows>
             </li>
           ))}
         </ol>

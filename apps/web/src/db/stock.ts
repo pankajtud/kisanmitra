@@ -5,7 +5,8 @@
  * of a lot in instalments, wheat goes straight from the field to the buyer. The
  * stock those lot sales draw down lives in `inventory.ts`.
  */
-import { totalHouseholdShare, uuidv7 } from '@kisanmitra/shared';
+import { uuidv7 } from '@kisanmitra/shared';
+import { partnersByKhata, sumShares } from './shares.js';
 import { db } from './db.js';
 import type { AppContext } from './seed.js';
 import type { LocalSale, LocalSaleGrade } from './types.js';
@@ -148,11 +149,19 @@ export async function listSeasonSales(cropCycleId: string): Promise<LocalSale[]>
  * a crop grown in partnership splits both the cost and the income, and only
  * the household's own half belongs in its books.
  */
-export async function seasonIncome(cropCycleId: string) {
+export async function seasonIncome(cropCycleId: string, householdId?: string) {
   const sales = await listSeasonSales(cropCycleId);
+  const partners = await partnersByKhata(householdId ?? sales[0]?.householdId ?? '');
+
   return {
-    total: totalHouseholdShare(
-      sales.map((sale) => ({ amount: sale.totalAmount, partnerShare: sale.partnerShare })),
+    total: sumShares(
+      sales.map((sale) => ({
+        khataId: sale.khataId,
+        amount: sale.totalAmount,
+        sharingMode: sale.sharingMode,
+        partnerShare: sale.partnerShare,
+      })),
+      partners,
     ),
     billed: sales.reduce((sum, sale) => sum + (sale.totalAmount ?? 0), 0),
     count: sales.length,

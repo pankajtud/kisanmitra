@@ -151,7 +151,7 @@ describe('editing and removing', () => {
     const cycle = await db.cropCycles.toCollection().first();
     const [before] = await listExpenses(cycle!.id);
 
-    await user.click(await screen.findByRole('button', { name: /इस सीजन का खर्च/ }));
+    await user.click(await screen.findByRole('button', { name: 'खर्च' }));
     await user.click(await screen.findByRole('button', { name: /डीजल/ }));
     await user.click(await screen.findByRole('button', { name: 'बदलें' }));
     await screen.findByRole('heading', { name: 'खर्च बदलें' });
@@ -178,7 +178,7 @@ describe('editing and removing', () => {
     await user.click(screen.getByRole('button', { name: 'खर्च सेव करें' }));
 
     await screen.findByRole('heading', { name: 'किसान मित्र' });
-    await user.click(await screen.findByRole('button', { name: /इस सीजन का खर्च/ }));
+    await user.click(await screen.findByRole('button', { name: 'खर्च' }));
     await user.click(await screen.findByRole('button', { name: /भाड़ा/ }));
     await user.click(await screen.findByRole('button', { name: 'हटाएं' }));
     await user.click(await screen.findByRole('button', { name: 'हां, हटाएं' }));
@@ -198,7 +198,7 @@ describe('the empty state', () => {
   it('tells the user what to do next', async () => {
     const user = userEvent.setup();
     await renderUnlocked(user);
-    await user.click(await screen.findByRole('button', { name: /इस सीजन का खर्च/ }));
+    await user.click(await screen.findByRole('button', { name: 'खर्च' }));
 
     const empty = await screen.findByText('अभी कोई खर्च नहीं जुड़ा।');
     expect(empty).toBeInTheDocument();

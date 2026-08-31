@@ -41,8 +41,8 @@ export function DateField({ value, onChange }: { value: string; onChange: (next:
         <label
           className={`btn tabular relative flex-1 basis-full cursor-pointer ${
             value !== now && value !== yesterday
-              ? 'bg-brand text-paper'
-              : 'border-2 border-brand bg-paper-raised text-brand-dark'
+              ? 'bg-brand text-white'
+              : 'border-2 border-brand bg-surface text-brand-ink'
           }`}
         >
           {value !== now && value !== yesterday ? formatRegisterDate(value) : t('date.pick')}

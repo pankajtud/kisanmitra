@@ -1,9 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { formatRegisterDate, formatRupees, householdShare, isShared } from '@kisanmitra/shared';
+import { formatRegisterDate, formatRupees } from '@kisanmitra/shared';
 import { useTranslation } from 'react-i18next';
+import { Money } from '../../components/Money.js';
 import { Screen } from '../../components/Screen.js';
+import { EmptyState, Rows, StatCard } from '../../components/ui.js';
 import { SyncBadge } from '../../components/SyncBadge.js';
 import { listSeasonSales, seasonIncome } from '../../db/stock.js';
+import { partnersByKhata, shareOf } from '../../db/shares.js';
 import type { AppContext } from '../../db/seed.js';
 import { useCrops } from '../../hooks/useAppData.js';
 import { useRefLabel } from '../../lib/labels.js';
@@ -30,7 +33,15 @@ export function SalesList({
   const refLabel = useRefLabel();
   const crops = useCrops(ctx.householdId);
   const sales = useLiveQuery(() => listSeasonSales(ctx.cropCycleId), [ctx.cropCycleId]);
-  const income = useLiveQuery(() => seasonIncome(ctx.cropCycleId), [ctx.cropCycleId]);
+  const income = useLiveQuery(
+    () => seasonIncome(ctx.cropCycleId, ctx.householdId),
+    [ctx.cropCycleId, ctx.householdId],
+  );
+  const partners = useLiveQuery(
+    () => partnersByKhata(ctx.householdId),
+    [ctx.householdId],
+    new Map(),
+  );
 
   const cropName = (id: string | null) => {
     const crop = crops.find((c) => c.id === id);
@@ -47,31 +58,29 @@ export function SalesList({
         </button>
       }
     >
-      <div className="card mb-4 px-5 py-4">
-        <span className="block text-lg font-semibold text-ink-soft">{t('sale.myIncome')}</span>
-        <span className="tabular block text-4xl font-bold text-rupee">
-          {formatRupees(income?.total ?? 0)}
-        </span>
-        {income && income.billed !== income.total ? (
-          <span className="tabular mt-1 block text-base text-ink-soft">
-            {t('list.billed')}: {formatRupees(income.billed)} · {t('list.yoursOnly')}
-          </span>
-        ) : null}
+      <div className="mb-4">
+        <StatCard
+          label={t('sale.myIncome')}
+          caption={
+            income && income.billed !== income.total
+              ? `${t('list.billed')} ${formatRupees(income.billed)} · ${t('list.yoursOnly')}`
+              : undefined
+          }
+        >
+          <Money amount={income?.total ?? 0} tone="credit" size="xl" />
+        </StatCard>
       </div>
 
       {sales === undefined ? null : sales.length === 0 ? (
-        <div className="card px-5 py-8 text-center">
-          <p className="text-xl font-semibold">{t('sale.empty')}</p>
-          <p className="mt-2 text-lg text-ink-soft">{t('sale.emptyAction')}</p>
-        </div>
+        <EmptyState title={t('sale.empty')} action={t('sale.emptyAction')} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <Rows>
           {sales.map((sale) => (
             <li key={sale.id}>
               <button
                 type="button"
                 onClick={() => onOpen(sale.id, sale.lotId)}
-                className="card flex w-full items-center gap-3 px-4 py-3 text-left active:bg-brand-tint"
+                className="card-tap flex w-full items-center gap-3 px-4 py-3"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-lg font-semibold">
@@ -91,22 +100,25 @@ export function SalesList({
                   </span>
                 </span>
 
-                <span className="shrink-0 text-right">
-                  <span className="tabular block text-2xl font-bold text-rupee">
-                    {formatRupees(
-                      householdShare({ amount: sale.totalAmount, partnerShare: sale.partnerShare }),
-                    )}
-                  </span>
-                  {isShared({ amount: sale.totalAmount, partnerShare: sale.partnerShare }) ? (
-                    <span className="tabular block text-xs text-ink-soft">
-                      {formatRupees(sale.totalAmount)} {t('expense.shared')}
-                    </span>
-                  ) : null}
-                </span>
+                <Money
+                  amount={shareOf(
+                    {
+                      khataId: sale.khataId,
+                      amount: sale.totalAmount,
+                      sharingMode: sale.sharingMode,
+                      partnerShare: sale.partnerShare,
+                    },
+                    partners,
+                  )}
+                  gross={sale.totalAmount}
+                  tone="credit"
+                  size="md"
+                  className="shrink-0"
+                />
               </button>
             </li>
           ))}
-        </ul>
+        </Rows>
       )}
     </Screen>
   );

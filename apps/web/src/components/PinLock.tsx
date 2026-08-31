@@ -92,7 +92,7 @@ export function PinLock({ onUnlocked }: { onUnlocked: () => void }) {
             <span
               key={i}
               className={`size-5 rounded-full border-2 ${
-                i < current.length ? 'border-brand bg-brand' : 'border-rule bg-paper-raised'
+                i < current.length ? 'border-brand bg-brand' : 'border-line bg-surface'
               }`}
             />
           ))}
@@ -149,7 +149,7 @@ function PinKey({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="tabular flex h-18 items-center justify-center rounded-2xl border-2 border-rule bg-paper-raised text-3xl font-bold active:bg-brand-tint disabled:opacity-40"
+      className="tabular flex h-18 items-center justify-center rounded-2xl border-2 border-line bg-surface text-3xl font-bold active:bg-brand-tint disabled:opacity-40"
     >
       {children}
     </button>

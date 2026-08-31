@@ -34,7 +34,7 @@ export function NumberPad({
           key={key}
           type="button"
           onClick={() => press(key)}
-          className="tabular h-16 rounded-2xl border-2 border-rule bg-paper-raised text-3xl font-bold active:bg-brand-tint"
+          className="tabular h-16 rounded-2xl border-2 border-line bg-surface text-3xl font-bold active:bg-brand-tint"
         >
           {key}
         </button>
@@ -44,7 +44,7 @@ export function NumberPad({
         onClick={() => onChange(value.slice(0, -1))}
         onDoubleClick={() => onChange('')}
         aria-label={t('numpad.backspace')}
-        className="flex h-16 items-center justify-center rounded-2xl border-2 border-rule bg-paper-raised active:bg-brand-tint"
+        className="flex h-16 items-center justify-center rounded-2xl border-2 border-line bg-surface active:bg-brand-tint"
       >
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 5h11v14H9L3 12l6-7z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />

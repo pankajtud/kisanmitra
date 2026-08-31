@@ -52,15 +52,13 @@ export function SuggestField({
           placeholder={placeholder}
           enterKeyHint="done"
           onChange={(event) => onChange(event.target.value)}
-          className={`min-h-touch w-full rounded-2xl border-2 bg-paper-raised px-4 py-3 text-lg text-ink placeholder:text-ink-soft ${
-            error ? 'border-danger' : 'border-rule'
-          }`}
+          className={`input ${error ? 'input-error' : ''}`}
         />
         <MicButton onTranscript={(text) => onChange(text)} label={label} />
       </div>
 
       {error ? (
-        <p className="mt-2 text-base font-semibold text-danger" role="alert">
+        <p className="mt-2 error-text" role="alert">
           {error}
         </p>
       ) : null}

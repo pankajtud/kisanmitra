@@ -19,7 +19,10 @@
     "seeStock": "See stock",
     "settings": "Settings",
     "addSale": "Record a sale",
-    "incomeLabel": "Earned this season"
+    "incomeLabel": "Earned this season",
+    "thisSeason": "This season",
+    "netLabel": "Net",
+    "quickAdd": "Add quickly"
   },
   "expense": {
     "newTitle": "New expense",
@@ -279,5 +282,12 @@
     "lotCount_one": "{{count}} lot",
     "lotCount_other": "{{count}} lots",
     "save": "Save"
+  },
+  "nav": {
+    "label": "Main menu",
+    "home": "Home",
+    "khatas": "Khatas",
+    "stock": "Stock",
+    "expenses": "Expenses"
   }
 }

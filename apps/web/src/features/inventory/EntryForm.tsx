@@ -196,7 +196,7 @@ export function EntryForm({
         <fieldset>
           <legend className="label">{t('inventory.lots')}</legend>
           {errors.lots ? (
-            <p className="mb-2 text-base font-semibold text-danger" role="alert">
+            <p className="mb-2 error-text" role="alert">
               {errors.lots}
             </p>
           ) : null}
@@ -212,7 +212,7 @@ export function EntryForm({
                       value={lot.lotNo}
                       onChange={(event) => setLot(index, { lotNo: event.target.value })}
                       placeholder={t('stock.lotNoPlaceholder')}
-                      className="tabular min-h-touch w-full rounded-2xl border-2 border-rule bg-paper-raised px-3 text-lg font-bold"
+                      className="tabular min-h-touch w-full rounded-2xl border-2 border-line bg-surface px-3 text-lg font-bold"
                     />
                   </label>
                   <label className="w-28">
@@ -222,7 +222,7 @@ export function EntryForm({
                       value={lot.roomRack ?? ''}
                       onChange={(event) => setLot(index, { roomRack: event.target.value || null })}
                       placeholder={t('stock.roomRackPlaceholder')}
-                      className="tabular min-h-touch w-full rounded-2xl border-2 border-rule bg-paper-raised px-3 text-lg"
+                      className="tabular min-h-touch w-full rounded-2xl border-2 border-line bg-surface px-3 text-lg"
                     />
                   </label>
                   {lots.length > 1 ? (

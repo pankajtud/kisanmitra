@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { formatLotBreakdown, formatRegisterDate, remainingBreakdown } from '@kisanmitra/shared';
 import { useTranslation } from 'react-i18next';
 import { Screen } from '../../components/Screen.js';
+import type { NavTab } from '../../components/BottomNav.js';
+import { EmptyState, Rows, StatCard } from '../../components/ui.js';
 import { SyncBadge } from '../../components/SyncBadge.js';
 import { entryPosition, listEntries } from '../../db/inventory.js';
 import type { AppContext } from '../../db/seed.js';
@@ -19,12 +21,12 @@ export function InventoryList({
   ctx,
   onOpen,
   onNew,
-  onBack,
+  onNavigate,
 }: {
   ctx: AppContext;
   onOpen: (entryId: string) => void;
   onNew: () => void;
-  onBack: () => void;
+  onNavigate: (tab: NavTab) => void;
 }) {
   const { t } = useTranslation();
   const grades = useGrades(ctx.householdId);
@@ -45,27 +47,26 @@ export function InventoryList({
   return (
     <Screen
       title={t('inventory.title')}
-      onBack={onBack}
+      tab="inventory"
+      onNavigate={onNavigate}
       action={
         <button type="button" onClick={onNew} className="btn-primary w-full text-xl">
           {t('inventory.new')}
         </button>
       }
     >
-      <div className="card mb-4 px-5 py-4">
-        <span className="block text-lg font-semibold text-ink-soft">{t('home.stockLabel')}</span>
-        <span className="tabular block text-4xl font-bold text-brand-dark">
-          {t('home.packetsLeft', { count: totalRemaining })}
-        </span>
+      <div className="mb-4">
+        <StatCard label={t('home.stockLabel')}>
+          <span className="tabular block text-4xl font-bold text-brand">
+            {t('home.packetsLeft', { count: totalRemaining })}
+          </span>
+        </StatCard>
       </div>
 
       {entries === undefined ? null : entries.length === 0 ? (
-        <div className="card px-5 py-8 text-center">
-          <p className="text-xl font-semibold">{t('inventory.empty')}</p>
-          <p className="mt-2 text-lg text-ink-soft">{t('inventory.emptyAction')}</p>
-        </div>
+        <EmptyState title={t('inventory.empty')} action={t('inventory.emptyAction')} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <Rows>
           {entries.map(({ entry, position }) => {
             const left = remainingBreakdown(position.remaining, grades);
             const soldOut = left.every((e) => e.packets <= 0);
@@ -78,7 +79,7 @@ export function InventoryList({
                 <button
                   type="button"
                   onClick={() => onOpen(entry.id)}
-                  className="card w-full px-4 py-3 text-left active:bg-brand-tint"
+                  className="card-tap w-full px-4 py-3"
                 >
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate text-xl font-bold">
@@ -89,7 +90,7 @@ export function InventoryList({
                     </span>
                   </span>
 
-                  <span className="tabular mt-1 block text-2xl font-bold text-brand-dark">
+                  <span className="tabular mt-1 block text-2xl font-bold text-brand">
                     {soldOut ? t('stock.allSold') : formatLotBreakdown(left)}
                   </span>
 
@@ -107,7 +108,7 @@ export function InventoryList({
               </li>
             );
           })}
-        </ul>
+        </Rows>
       )}
     </Screen>
   );

@@ -34,7 +34,7 @@ export function PhotoPreview({ receiptId }: { receiptId: string }) {
       <img
         src={url}
         alt={t('expense.photoAlt')}
-        className="max-h-72 w-full rounded-2xl border-2 border-rule bg-paper-raised object-contain"
+        className="max-h-72 w-full rounded-2xl border-2 border-line bg-surface object-contain"
       />
       <figcaption className="mt-1 text-center text-sm font-medium text-ink-soft">
         {t('expense.photoSaved')}

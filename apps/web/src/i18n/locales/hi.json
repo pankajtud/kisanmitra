@@ -19,7 +19,10 @@
     "seeStock": "स्टॉक देखें",
     "settings": "सेटिंग",
     "addSale": "बिक्री दर्ज करें",
-    "incomeLabel": "इस सीजन की आमदनी"
+    "incomeLabel": "इस सीजन की आमदनी",
+    "thisSeason": "इस सीजन",
+    "netLabel": "बचत",
+    "quickAdd": "जल्दी से जोड़ें"
   },
   "expense": {
     "newTitle": "नया खर्च",
@@ -279,5 +282,12 @@
     "lotCount_one": "{{count}} लॉट",
     "lotCount_other": "{{count}} लॉट",
     "save": "सेव करें"
+  },
+  "nav": {
+    "label": "मुख्य मेन्यू",
+    "home": "घर",
+    "khatas": "खाते",
+    "stock": "माल",
+    "expenses": "खर्च"
   }
 }

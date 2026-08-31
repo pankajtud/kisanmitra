@@ -222,10 +222,10 @@ export function SaleForm({
         <>
           <div className="mb-2 flex items-baseline justify-between">
             <span className="text-lg font-semibold text-ink-soft">{t('sale.total')}</span>
-            <span className="tabular text-3xl font-bold text-rupee">{formatRupees(total)}</span>
+            <span className="tabular text-3xl font-bold text-debit">{formatRupees(total)}</span>
           </div>
           {errors.save ? (
-            <p className="mb-2 text-base font-semibold text-danger" role="alert">
+            <p className="mb-2 error-text" role="alert">
               {errors.save}
             </p>
           ) : null}
@@ -249,7 +249,7 @@ export function SaleForm({
           <fieldset>
             <legend className="label">{t('sale.linesLabel')}</legend>
             {errors.lines ? (
-              <p className="mb-2 text-base font-semibold text-danger" role="alert">
+              <p className="mb-2 error-text" role="alert">
                 {errors.lines}
               </p>
             ) : null}
@@ -279,7 +279,7 @@ export function SaleForm({
                       </div>
 
                       {(line?.packets ?? 0) > 0 ? (
-                        <label className="flex items-center gap-2 border-t-2 border-rule pt-2">
+                        <label className="flex items-center gap-2 border-t-2 border-line pt-2">
                           <span className="flex-1 text-base font-semibold text-ink-soft">
                             {t('sale.rateLabel')}
                           </span>
@@ -294,7 +294,7 @@ export function SaleForm({
                                 ratePerPacket: parseAmount(event.target.value),
                               })
                             }
-                            className="tabular h-touch w-28 rounded-2xl border-2 border-rule bg-paper-raised text-center text-xl font-bold text-rupee placeholder:text-ink-soft"
+                            className="tabular h-touch w-28 rounded-2xl border-2 border-line bg-surface text-center text-xl font-bold text-debit placeholder:text-ink-soft"
                             aria-label={`${t('sale.rateLabel')} — ${grade.labelHi}`}
                           />
                         </label>
@@ -332,7 +332,7 @@ export function SaleForm({
                 suggestedUnit={crop?.defaultUnit}
               />
               {errors.quantity ? (
-                <p className="mt-2 text-base font-semibold text-danger" role="alert">
+                <p className="mt-2 error-text" role="alert">
                   {errors.quantity}
                 </p>
               ) : null}
@@ -350,7 +350,7 @@ export function SaleForm({
                   value={rate}
                   placeholder="0"
                   onChange={(event) => setRate(event.target.value.replace(/[^0-9.]/g, ''))}
-                  className="tabular min-h-touch flex-1 rounded-2xl border-2 border-rule bg-paper-raised px-4 py-3 text-2xl font-bold text-rupee placeholder:text-ink-soft"
+                  className="tabular min-h-touch flex-1 rounded-2xl border-2 border-line bg-surface px-4 py-3 text-2xl font-bold text-debit placeholder:text-ink-soft"
                 />
               </div>
             </label>

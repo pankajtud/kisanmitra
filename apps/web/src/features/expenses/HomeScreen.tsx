@@ -1,21 +1,22 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { formatRupees } from '@kisanmitra/shared';
 import { useTranslation } from 'react-i18next';
 import { CameraButton } from '../../components/CameraButton.js';
-import { OfflineBar } from '../../components/OfflineBar.js';
+import { Money } from '../../components/Money.js';
+import { Screen } from '../../components/Screen.js';
+import type { NavTab } from '../../components/BottomNav.js';
+import { StatCard } from '../../components/ui.js';
 import { seasonTotal } from '../../db/expenses.js';
-import { seasonIncome } from '../../db/stock.js';
 import { inventorySummary } from '../../db/inventory.js';
+import { seasonIncome } from '../../db/stock.js';
 import { useCropCycle } from '../../hooks/useAppData.js';
 import type { AppContext } from '../../db/seed.js';
 
 /**
- * Three things, large, nothing else above the fold (CLAUDE.md §10): add an
- * expense, add stock, and see this season.
+ * The season at a glance, then the things you came to do.
  *
- * The season figures sit at the top where the eye lands; the actions live in
- * the bottom third under the thumb. Money shown is always the household's own
- * share — a cost or an income split with a partner counts only their half.
+ * Three actions, large, in the bottom third (CLAUDE.md §10): photograph a
+ * receipt, add stock, record a sale. The numbers above are all the household's
+ * own share — a joint cost or a partnership crop counts only their half.
  */
 export function HomeScreen({
   ctx,
@@ -23,10 +24,10 @@ export function HomeScreen({
   onManualEntry,
   onSeeExpenses,
   onSeeStock,
-  onSeeKhatas,
   onAddLot,
   onSeeSales,
   onSettings,
+  onNavigate,
   error,
 }: {
   ctx: AppContext;
@@ -34,24 +35,32 @@ export function HomeScreen({
   onManualEntry: () => void;
   onSeeExpenses: () => void;
   onSeeStock: () => void;
-  onSeeKhatas: () => void;
   onAddLot: () => void;
   onSeeSales: () => void;
   onSettings: () => void;
+  onNavigate: (tab: NavTab) => void;
   error: string | null;
 }) {
   const { t } = useTranslation();
   const cycle = useCropCycle(ctx.cropCycleId);
-  const expenses = useLiveQuery(() => seasonTotal(ctx.cropCycleId), [ctx.cropCycleId]);
-  const income = useLiveQuery(() => seasonIncome(ctx.cropCycleId), [ctx.cropCycleId]);
+  const expenses = useLiveQuery(
+    () => seasonTotal(ctx.cropCycleId, ctx.householdId),
+    [ctx.cropCycleId, ctx.householdId],
+  );
+  const income = useLiveQuery(
+    () => seasonIncome(ctx.cropCycleId, ctx.householdId),
+    [ctx.cropCycleId, ctx.householdId],
+  );
   const stock = useLiveQuery(() => inventorySummary(ctx.cropCycleId), [ctx.cropCycleId]);
 
-  return (
-    <div className="flex min-h-dvh flex-col bg-paper">
-      <OfflineBar />
+  const net = (income?.total ?? 0) - (expenses?.total ?? 0);
 
-      <header className="flex items-center justify-between gap-2 px-4 pt-5 pb-3">
-        <h1 className="text-2xl font-bold">{t('app.name')}</h1>
+  return (
+    <Screen
+      title={t('app.name')}
+      tab="home"
+      onNavigate={onNavigate}
+      headerAction={
         <button
           type="button"
           onClick={onSettings}
@@ -60,112 +69,97 @@ export function HomeScreen({
         >
           <GearIcon />
         </button>
-      </header>
-
-      <main className="flex flex-1 flex-col px-4 pb-6">
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <SummaryCard
-            label={t('home.seasonLabel')}
-            value={formatRupees(expenses?.total ?? 0)}
-            caption={cycle?.label}
-            onClick={onSeeExpenses}
-            tone="rupee"
-          />
-          <SummaryCard
-            label={t('home.incomeLabel')}
-            value={formatRupees(income?.total ?? 0)}
-            caption={income ? t('sale.count', { count: income.count }) : undefined}
-            onClick={onSeeSales}
-            tone="brand"
-          />
+      }
+    >
+      {/* The season, netted. This is the number the whole app exists to produce. */}
+      <section className="card mb-3 px-5 py-5">
+        <div className="flex items-baseline justify-between">
+          <span className="text-base font-semibold text-ink-soft">{t('home.netLabel')}</span>
+          <span className="tabular text-sm font-semibold text-ink-soft">{cycle?.label}</span>
         </div>
+        <Money amount={net} tone="auto" size="xl" className="mt-1" />
 
-        <button
-          type="button"
+        <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-3">
+          <button
+            type="button"
+            onClick={onSeeExpenses}
+            aria-label={t('list.title')}
+            className="text-left"
+          >
+            <dt className="text-sm font-semibold text-ink-soft">{t('khata.expenses')}</dt>
+            <dd>
+              <Money amount={expenses?.total ?? 0} tone="debit" size="md" />
+            </dd>
+          </button>
+          <button
+            type="button"
+            onClick={onSeeSales}
+            aria-label={t('sale.seasonTitle')}
+            className="text-right"
+          >
+            <dt className="text-sm font-semibold text-ink-soft">{t('khata.earnings')}</dt>
+            <dd>
+              <Money amount={income?.total ?? 0} tone="credit" size="md" />
+            </dd>
+          </button>
+        </dl>
+      </section>
+
+      <div className="mb-4">
+        <StatCard
+          label={t('home.stockLabel')}
           onClick={onSeeStock}
-          className="card mb-4 w-full px-5 py-4 text-left active:bg-brand-tint"
+          caption={
+            stock && stock.entryCount > 0
+              ? `${t('inventory.lotCount', { count: stock.lotCount })}`
+              : undefined
+          }
         >
-          <span className="block text-lg font-semibold text-ink-soft">{t('home.stockLabel')}</span>
-          <span className="tabular mt-1 block text-3xl font-bold text-brand-dark">
+          <span className="tabular block text-3xl font-bold text-brand">
             {stock && stock.entryCount > 0
               ? t('home.packetsLeft', { count: stock.remaining })
               : t('home.noStock')}
           </span>
-        </button>
+        </StatCard>
+      </div>
 
-        {error ? (
-          <p
-            className="mb-4 rounded-2xl bg-danger-tint px-4 py-3 text-base font-semibold text-danger"
-            role="alert"
-          >
-            {error}
-          </p>
-        ) : null}
+      {error ? (
+        <p className="error-text mb-4 rounded-2xl bg-danger-tint px-4 py-3" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-        {/* Primary actions, bottom third, reachable one-handed (§10). */}
-        <div className="mt-auto flex flex-col gap-3">
-          <CameraButton
-            onPhoto={onCapture}
-            onError={() => undefined}
-            className="btn-primary min-h-[6.5rem] w-full flex-col gap-2 text-2xl"
-          >
-            <CameraIcon />
-            {t('home.addExpensePhoto')}
-          </CameraButton>
+      {/* Primary actions, reachable one-handed. */}
+      <div className="flex flex-col gap-3">
+        <CameraButton
+          onPhoto={onCapture}
+          onError={() => undefined}
+          className="btn-primary min-h-[6rem] w-full flex-col gap-1 text-xl"
+        >
+          <CameraIcon />
+          {t('home.addExpensePhoto')}
+        </CameraButton>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={onAddLot} className="btn-secondary text-lg">
-              {t('home.addStock')}
-            </button>
-            <button type="button" onClick={onSeeSales} className="btn-secondary text-lg">
-              {t('home.addSale')}
-            </button>
-          </div>
-
-          <button type="button" onClick={onSeeKhatas} className="btn-secondary w-full text-lg">
-            {t('khata.all')}
+        <div className="grid grid-cols-2 gap-3">
+          <button type="button" onClick={onAddLot} className="btn-secondary text-lg">
+            {t('home.addStock')}
           </button>
-
-          <button type="button" onClick={onManualEntry} className="btn-quiet w-full text-base">
-            {t('home.addExpenseManual')}
+          <button type="button" onClick={onSeeSales} className="btn-secondary text-lg">
+            {t('home.addSale')}
           </button>
         </div>
-      </main>
-    </div>
-  );
-}
 
-function SummaryCard({
-  label,
-  value,
-  caption,
-  onClick,
-  tone,
-}: {
-  label: string;
-  value: string;
-  caption?: string;
-  onClick: () => void;
-  tone: 'rupee' | 'brand';
-}) {
-  return (
-    <button type="button" onClick={onClick} className="card px-4 py-4 text-left active:bg-brand-tint">
-      <span className="block text-base font-semibold text-ink-soft">{label}</span>
-      <span
-        className={`tabular mt-1 block text-3xl leading-tight font-bold ${
-          tone === 'rupee' ? 'text-rupee' : 'text-brand-dark'
-        }`}
-      >
-        {value}
-      </span>
-      {caption ? <span className="tabular mt-1 block text-sm text-ink-soft">{caption}</span> : null}
-    </button>
+        <button type="button" onClick={onManualEntry} className="btn-quiet w-full">
+          {t('home.addExpenseManual')}
+        </button>
+      </div>
+    </Screen>
   );
 }
 
 function CameraIcon() {
   return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
         d="M3 8.5A2 2 0 0 1 5 6.5h2l1.2-2h7.6L17 6.5h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z"
         stroke="currentColor"

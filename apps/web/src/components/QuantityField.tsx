@@ -45,7 +45,7 @@ export function QuantityField({
           value={quantity}
           placeholder="0"
           onChange={(event) => onQuantityChange(event.target.value.replace(/[^0-9.]/g, ''))}
-          className="tabular min-h-touch w-28 rounded-2xl border-2 border-rule bg-paper-raised px-4 py-3 text-center text-2xl font-bold text-ink placeholder:text-ink-soft"
+          className="tabular min-h-touch w-28 rounded-2xl border-2 border-line bg-surface px-4 py-3 text-center text-2xl font-bold text-ink placeholder:text-ink-soft"
         />
 
         <ul className="flex flex-1 flex-wrap gap-2">
@@ -57,8 +57,8 @@ export function QuantityField({
                 aria-pressed={unit === option}
                 className={`btn min-h-[2.75rem] px-4 py-1 text-base ${
                   unit === option
-                    ? 'bg-brand text-paper'
-                    : 'border-2 border-rule bg-paper-raised text-ink active:bg-brand-tint'
+                    ? 'bg-brand text-white'
+                    : 'border-2 border-line bg-surface text-ink active:bg-brand-tint'
                 }`}
               >
                 {option}

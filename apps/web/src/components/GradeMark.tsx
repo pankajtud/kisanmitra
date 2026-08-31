@@ -32,7 +32,7 @@ export function GradeMark({ grade, size = 56 }: { grade: GradeLike; size?: numbe
         alt={grade.labelHi}
         width={size}
         height={size}
-        className="shrink-0 rounded-full border-2 border-rule object-cover"
+        className="shrink-0 rounded-full border-2 border-line object-cover"
       />
     );
   }

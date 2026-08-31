@@ -76,7 +76,7 @@ export function FieldsScreen({ ctx, onBack }: { ctx: AppContext; onBack: () => v
                         type="text"
                         value={editName}
                         onChange={(event) => setEditName(event.target.value)}
-                        className="min-h-touch w-full rounded-2xl border-2 border-rule bg-paper-raised px-4 py-2 text-lg"
+                        className="min-h-touch w-full rounded-2xl border-2 border-line bg-surface px-4 py-2 text-lg"
                         aria-label={t('fields.rename')}
                       />
                       <div className="flex gap-2">

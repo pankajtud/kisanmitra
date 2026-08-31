@@ -55,14 +55,14 @@ export function GradePacketsField({
           recognises from the paper (§5). */}
       <output
         className={`tabular mb-3 block rounded-2xl border-2 px-4 py-3 text-center text-2xl font-bold ${
-          error ? 'border-danger bg-danger-tint text-danger' : 'border-rule bg-paper-raised text-ink'
+          error ? 'border-danger bg-danger-tint text-danger' : 'border-line bg-surface text-ink'
         }`}
       >
         {total > 0 ? formatLotBreakdown(breakdown) : t('stock.totalPackets', { count: 0 })}
       </output>
 
       {error ? (
-        <p className="mb-2 text-base font-semibold text-danger" role="alert">
+        <p className="mb-2 error-text" role="alert">
           {error}
         </p>
       ) : null}

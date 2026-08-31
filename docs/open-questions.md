@@ -176,6 +176,32 @@ Real per-user protection is M2's accounts, still blocked on DLT registration for
 OTP (§4). **That registration has not been started — it takes days and blocks
 auth testing.**
 
+### Q20. Bottom navigation vs §10's "no tabs"
+
+§10 forbids "tabs within a task", nested navigation, and hamburger menus that
+hide primary actions. The app now has a **bottom navigation bar** with four
+top-level destinations (घर, खाते, माल, खर्च).
+
+Read as: that rule is about not fragmenting a *task*, and about not hiding
+things. A persistent top-level bar does neither — it is always visible, sits in
+the bottom third where a thumb reaches, and is the model our users already know
+from WhatsApp and YouTube. Forms and detail screens still present full-screen
+with a back arrow and no bar, so one task still owns one screen.
+
+→ **Flagging it because it is a judgement call against the letter of §10.** Easy
+to remove if you disagree; it is one component and one prop.
+
+### Q21. Season totals were wrong for khata-inherited splits — FIXED
+
+Found while rebuilding the UI. `seasonTotal` and `seasonIncome` computed the
+household's share from `partner_share` on the row, which is null when an entry
+inherits its khata's percentages. A half-shared expense therefore counted in
+**full** on the home screen and the expense list, while the khata's own balance
+had it right — two different numbers for the same money.
+
+Now resolved through `db/shares.ts`, which loads each khata's partners before
+totalling. Covered by `src/test/shares.test.ts` so it cannot come back.
+
 ### Q13. What order do grades go in inside the composite notation?
 
 The §5 example reads `21H+83G+7K+10M` — not the grade sort order (M, G, H, K,

@@ -93,7 +93,7 @@ export function EntryDetail({
       <div className="flex flex-col gap-5">
         <div className="card px-5 py-4">
           <span className="block text-lg font-semibold text-ink-soft">{t('stock.remaining')}</span>
-          <span className="tabular block text-4xl font-bold text-brand-dark">
+          <span className="tabular block text-4xl font-bold text-brand-ink">
             {soldOut ? t('stock.allSold') : formatLotBreakdown(left)}
           </span>
           <span className="mt-2 block text-base text-ink-soft">
@@ -124,7 +124,7 @@ export function EntryDetail({
                     ) : null}
                   </div>
 
-                  <span className="tabular mt-1 block text-2xl font-bold text-brand-dark">
+                  <span className="tabular mt-1 block text-2xl font-bold text-brand-ink">
                     {lotEmpty ? t('stock.allSold') : formatLotBreakdown(lotLeft)}
                   </span>
 
@@ -151,7 +151,7 @@ export function EntryDetail({
                   </ul>
 
                   {sales.length > 0 ? (
-                    <ul className="mt-3 divide-y-2 divide-rule border-t-2 border-rule">
+                    <ul className="mt-3 divide-y-2 divide-line border-t-2 border-line">
                       {sales.map((sale) => (
                         <li key={sale.id}>
                           <button
@@ -163,7 +163,7 @@ export function EntryDetail({
                               {formatRegisterDate(sale.soldOn)}
                               {sale.buyer ? ` · ${sale.buyer}` : ''}
                             </span>
-                            <span className="font-bold text-rupee">
+                            <span className="font-bold text-debit">
                               {formatRupees(sale.totalAmount)}
                             </span>
                           </button>
@@ -182,7 +182,7 @@ export function EntryDetail({
                       {lotEmpty ? t('stock.allSold') : t('sale.newSale')}
                     </button>
                     {revenue > 0 ? (
-                      <span className="tabular text-lg font-bold text-rupee">
+                      <span className="tabular text-lg font-bold text-debit">
                         {formatRupees(revenue)}
                       </span>
                     ) : null}

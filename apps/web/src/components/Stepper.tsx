@@ -29,7 +29,7 @@ export function Stepper({
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value <= 0}
         aria-label={`${t('stepper.less')} — ${label}`}
-        className="flex size-touch items-center justify-center rounded-2xl border-2 border-rule bg-paper-raised text-3xl font-bold text-ink active:bg-brand-tint disabled:opacity-35"
+        className="flex size-touch items-center justify-center rounded-2xl border-2 border-line bg-surface text-3xl font-bold text-ink active:bg-brand-tint disabled:opacity-35"
       >
         −
       </button>
@@ -46,7 +46,7 @@ export function Stepper({
           const next = digits === '' ? 0 : Number(digits);
           onChange(max === undefined ? next : Math.min(next, max));
         }}
-        className="tabular h-touch w-20 rounded-2xl border-2 border-rule bg-paper-raised text-center text-2xl font-bold text-ink placeholder:text-ink-soft"
+        className="tabular h-touch w-20 rounded-2xl border-2 border-line bg-surface text-center text-2xl font-bold text-ink placeholder:text-ink-soft"
       />
 
       <button
@@ -54,7 +54,7 @@ export function Stepper({
         onClick={() => onChange(value + 1)}
         disabled={atMax}
         aria-label={`${t('stepper.more')} — ${label}`}
-        className="flex size-touch items-center justify-center rounded-2xl border-2 border-brand bg-paper-raised text-3xl font-bold text-brand-dark active:bg-brand-tint disabled:opacity-35"
+        className="flex size-touch items-center justify-center rounded-2xl border-2 border-brand bg-surface text-3xl font-bold text-brand-ink active:bg-brand-tint disabled:opacity-35"
       >
         +
       </button>

@@ -36,7 +36,7 @@ export function AmountField({
       <output
         id="amount-display"
         className={`tabular mb-3 flex min-h-[4.5rem] items-center justify-end rounded-2xl border-2 px-4 text-5xl font-bold ${
-          error ? 'border-danger bg-danger-tint text-danger' : 'border-rule bg-paper-raised text-rupee'
+          error ? 'border-danger bg-danger-tint text-danger' : 'border-line bg-surface text-debit'
         }`}
       >
         <span className="mr-1 text-3xl">₹</span>
@@ -44,7 +44,7 @@ export function AmountField({
       </output>
 
       {error ? (
-        <p className="mb-3 text-base font-semibold text-danger" role="alert">
+        <p className="mb-3 error-text" role="alert">
           {error}
         </p>
       ) : null}

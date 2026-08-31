@@ -12,7 +12,7 @@ export function OfflineBar() {
   if (online) return null;
 
   return (
-    <p className="bg-brand-tint px-4 py-2 text-center text-base font-semibold text-brand-dark" role="status">
+    <p className="bg-brand-tint px-4 py-2 text-center text-base font-semibold text-brand-ink" role="status">
       {t('app.offline')}
     </p>
   );

@@ -111,7 +111,7 @@ export function KhataDetail({
     >
       <div className="flex flex-col gap-5">
         {settled ? (
-          <p className="rounded-2xl bg-rule/50 px-4 py-3 text-center text-base font-semibold" role="status">
+          <p className="rounded-2xl bg-sunk px-4 py-3 text-center text-base font-semibold" role="status">
             {t('khata.locked')}
             {khata.settledOn ? ` · ${formatRegisterDate(khata.settledOn)}` : ''}
           </p>
@@ -123,25 +123,25 @@ export function KhataDetail({
           </span>
           <span
             className={`tabular block text-5xl font-bold ${
-              balance.balance < 0 ? 'text-danger' : 'text-brand-dark'
+              balance.balance < 0 ? 'text-danger' : 'text-brand-ink'
             }`}
           >
             {formatRupees(balance.balance)}
           </span>
 
-          <dl className="tabular mt-3 flex justify-between border-t-2 border-rule pt-3 text-base">
+          <dl className="tabular mt-3 flex justify-between border-t-2 border-line pt-3 text-base">
             <div>
               <dt className="text-ink-soft">{t('khata.expenses')}</dt>
-              <dd className="text-xl font-bold text-rupee">{formatRupees(balance.expenses)}</dd>
+              <dd className="text-xl font-bold text-debit">{formatRupees(balance.expenses)}</dd>
             </div>
             <div className="text-right">
               <dt className="text-ink-soft">{t('khata.earnings')}</dt>
-              <dd className="text-xl font-bold text-brand-dark">{formatRupees(balance.earnings)}</dd>
+              <dd className="text-xl font-bold text-brand-ink">{formatRupees(balance.earnings)}</dd>
             </div>
           </dl>
 
           {shared ? (
-            <p className="tabular mt-3 border-t-2 border-rule pt-3 text-base text-ink-soft">
+            <p className="tabular mt-3 border-t-2 border-line pt-3 text-base text-ink-soft">
               {t('khata.grossBalance')}: {formatRupees(balance.grossBalance)}
             </p>
           ) : null}
@@ -151,7 +151,7 @@ export function KhataDetail({
         {shared ? (
           <section className="card px-4 py-4">
             <h2 className="mb-2 text-lg font-bold">{t('khata.settlementTitle')}</h2>
-            <ul className="divide-y-2 divide-rule">
+            <ul className="divide-y-2 divide-line">
               {rows.map((row) => (
                 <li key={row.name + String(row.isSelf)} className="flex items-baseline justify-between py-2">
                   <span className="text-lg font-semibold">
@@ -160,7 +160,7 @@ export function KhataDetail({
                   </span>
                   <span
                     className={`tabular text-xl font-bold ${
-                      row.amount < 0 ? 'text-danger' : 'text-brand-dark'
+                      row.amount < 0 ? 'text-danger' : 'text-brand-ink'
                     }`}
                   >
                     {formatRupees(row.amount)}
@@ -285,7 +285,7 @@ function LedgerRow({
       <span
         aria-hidden="true"
         className={`tabular w-6 shrink-0 text-center text-2xl font-bold ${
-          positive ? 'text-brand-dark' : 'text-rupee'
+          positive ? 'text-brand-ink' : 'text-debit'
         }`}
       >
         {positive ? '+' : '−'}
@@ -296,7 +296,7 @@ function LedgerRow({
       </span>
       <span className="shrink-0 text-right">
         <span
-          className={`tabular block text-xl font-bold ${positive ? 'text-brand-dark' : 'text-rupee'}`}
+          className={`tabular block text-xl font-bold ${positive ? 'text-brand-ink' : 'text-debit'}`}
         >
           {formatRupees(amount)}
         </span>

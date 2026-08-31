@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { NavTab } from './components/BottomNav.js';
 import { PinLock, useAutoLock } from './components/PinLock.js';
 import { ExpenseDetail } from './features/expenses/ExpenseDetail.js';
 import { ExpenseForm } from './features/expenses/ExpenseForm.js';
@@ -55,6 +56,14 @@ export function App() {
   useAutoLock(lock, !locked);
 
   const screen = stack[stack.length - 1]!;
+
+  /**
+   * The bottom navigation resets the stack: a tab is a destination, not
+   * somewhere you push onto what you were already doing.
+   */
+  const navigate = useCallback((tab: NavTab) => {
+    setStack([{ name: tab === 'home' ? 'home' : tab }]);
+  }, []);
   const push = useCallback((next: Screen) => setStack((s) => [...s, next]), []);
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
   /** Replace the top screen, so a form does not sit in the back stack after saving. */
@@ -93,10 +102,10 @@ export function App() {
           onManualEntry={() => push({ name: 'expenseForm', expenseId: null })}
           onSeeExpenses={() => push({ name: 'expenses' })}
           onSeeStock={() => push({ name: 'inventory' })}
-          onSeeKhatas={() => push({ name: 'khatas' })}
           onAddLot={() => push({ name: 'entryForm', entryId: null })}
           onSeeSales={() => push({ name: 'sales' })}
           onSettings={() => push({ name: 'settings' })}
+          onNavigate={navigate}
           error={captureError}
         />
       );
@@ -107,7 +116,7 @@ export function App() {
           ctx={ctx}
           onOpen={(expenseId) => push({ name: 'expenseDetail', expenseId })}
           onCapture={capture}
-          onBack={back}
+          onNavigate={navigate}
         />
       );
 
@@ -138,7 +147,7 @@ export function App() {
           ctx={ctx}
           onOpen={(khataId) => push({ name: 'khataDetail', khataId })}
           onNew={() => push({ name: 'khataForm', khataId: null })}
-          onBack={back}
+          onNavigate={navigate}
         />
       );
 
@@ -172,7 +181,7 @@ export function App() {
           ctx={ctx}
           onOpen={(entryId) => push({ name: 'entryDetail', entryId })}
           onNew={() => push({ name: 'entryForm', entryId: null })}
-          onBack={back}
+          onNavigate={navigate}
         />
       );
 

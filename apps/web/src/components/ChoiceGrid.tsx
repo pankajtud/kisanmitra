@@ -33,7 +33,7 @@ export function ChoiceGrid({
       <legend className="label">{legend}</legend>
 
       {error ? (
-        <p className="mb-2 text-base font-semibold text-danger" role="alert">
+        <p className="mb-2 error-text" role="alert">
           {error}
         </p>
       ) : null}
@@ -75,8 +75,8 @@ function Option({
       aria-pressed={selected}
       className={`flex min-h-touch items-center gap-2 rounded-2xl border-2 px-3 py-3 text-left text-base font-semibold leading-tight ${
         selected
-          ? 'border-brand-dark bg-brand text-paper'
-          : 'border-rule bg-paper-raised text-ink active:bg-brand-tint'
+          ? 'border-brand bg-brand text-white'
+          : 'border-line bg-surface text-ink active:bg-brand-tint'
       }`}
     >
       {icon ? <span aria-hidden="true">{icon}</span> : null}

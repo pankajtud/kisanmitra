@@ -1,7 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { formatRegisterDate, formatRupees } from '@kisanmitra/shared';
 import { useTranslation } from 'react-i18next';
+import { Money } from '../../components/Money.js';
 import { Screen } from '../../components/Screen.js';
+import type { NavTab } from '../../components/BottomNav.js';
+import { EmptyState, Rows } from '../../components/ui.js';
 import { balanceOf, khataPartners, listKhatas } from '../../db/khata.js';
 import type { AppContext } from '../../db/seed.js';
 
@@ -16,12 +19,12 @@ export function KhataList({
   ctx,
   onOpen,
   onNew,
-  onBack,
+  onNavigate,
 }: {
   ctx: AppContext;
   onOpen: (khataId: string) => void;
   onNew: () => void;
-  onBack: () => void;
+  onNavigate: (tab: NavTab) => void;
 }) {
   const { t } = useTranslation();
 
@@ -39,7 +42,8 @@ export function KhataList({
   return (
     <Screen
       title={t('khata.all')}
-      onBack={onBack}
+      tab="khatas"
+      onNavigate={onNavigate}
       action={
         <button type="button" onClick={onNew} className="btn-primary w-full text-xl">
           {t('khata.new')}
@@ -47,12 +51,9 @@ export function KhataList({
       }
     >
       {khatas === undefined ? null : khatas.length === 0 ? (
-        <div className="card px-5 py-8 text-center">
-          <p className="text-xl font-semibold">{t('khata.empty')}</p>
-          <p className="mt-2 text-lg text-ink-soft">{t('khata.emptyAction')}</p>
-        </div>
+        <EmptyState title={t('khata.empty')} action={t('khata.emptyAction')} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <Rows>
           {khatas.map(({ khata, balance, partners }) => {
             const settled = khata.status === 'settled';
             return (
@@ -60,34 +61,22 @@ export function KhataList({
                 <button
                   type="button"
                   onClick={() => onOpen(khata.id)}
-                  className={`card w-full px-4 py-4 text-left active:bg-brand-tint ${
-                    settled ? 'opacity-70' : ''
-                  }`}
+                  className={`card-tap w-full px-4 py-4 ${settled ? 'opacity-65' : ''}`}
                 >
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate text-xl font-bold">{khata.name}</span>
-                    <span
-                      className={`shrink-0 rounded-full px-3 py-0.5 text-sm font-semibold ${
-                        settled ? 'bg-rule text-ink' : 'bg-brand-tint text-brand-dark'
-                      }`}
-                    >
+                    <span className={settled ? 'badge-done' : 'badge-open'}>
                       {settled ? t('khata.settled') : t('khata.open')}
                     </span>
                   </span>
 
-                  <span
-                    className={`tabular mt-1 block text-3xl font-bold ${
-                      balance.balance < 0 ? 'text-danger' : 'text-brand-dark'
-                    }`}
-                  >
-                    {formatRupees(balance.balance)}
-                  </span>
+                  <Money amount={balance.balance} tone="auto" size="lg" className="mt-1" />
 
                   <span className="tabular mt-1 flex flex-wrap gap-x-3 text-sm text-ink-soft">
-                    <span>
+                    <span className="text-debit">
                       {t('khata.expenses')} {formatRupees(balance.expenses)}
                     </span>
-                    <span>
+                    <span className="text-credit">
                       {t('khata.earnings')} {formatRupees(balance.earnings)}
                     </span>
                     {partners.length > 0 ? (
@@ -105,7 +94,7 @@ export function KhataList({
               </li>
             );
           })}
-        </ul>
+        </Rows>
       )}
     </Screen>
   );

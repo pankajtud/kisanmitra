@@ -33,7 +33,7 @@ export function TextField({
     placeholder,
     onChange: (event: { target: { value: string } }) => onChange(event.target.value),
     className:
-      'min-h-touch w-full rounded-2xl border-2 border-rule bg-paper-raised px-4 py-3 text-lg text-ink placeholder:text-ink-soft',
+      'input',
   };
 
   return (

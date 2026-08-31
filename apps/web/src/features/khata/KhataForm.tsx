@@ -163,12 +163,12 @@ export function KhataForm({
           <legend className="label">{t('khata.partners')}</legend>
 
           {errors.partners ? (
-            <p className="mb-2 text-base font-semibold text-danger" role="alert">
+            <p className="mb-2 error-text" role="alert">
               {errors.partners}
             </p>
           ) : null}
           {errors.shares ? (
-            <p className="mb-2 text-base font-semibold text-danger" role="alert">
+            <p className="mb-2 error-text" role="alert">
               {errors.shares}
             </p>
           ) : null}
@@ -195,7 +195,7 @@ export function KhataForm({
                     placeholder={t('expense.partnerNamePlaceholder')}
                     aria-label={t('expense.partnerNameLabel')}
                     list="known-partners"
-                    className="min-h-touch min-w-0 flex-1 rounded-2xl border-2 border-rule bg-paper-raised px-3 text-lg"
+                    className="min-h-touch min-w-0 flex-1 rounded-2xl border-2 border-line bg-surface px-3 text-lg"
                   />
                 )}
 
@@ -209,7 +209,7 @@ export function KhataForm({
                     })
                   }
                   aria-label={`${t('khata.sharePercent')} — ${partner.isSelf ? t('khata.you') : partner.name}`}
-                  className="tabular h-touch w-16 rounded-2xl border-2 border-rule bg-paper-raised text-center text-xl font-bold"
+                  className="tabular h-touch w-16 rounded-2xl border-2 border-line bg-surface text-center text-xl font-bold"
                 />
                 <span className="text-lg font-bold text-ink-soft">%</span>
 

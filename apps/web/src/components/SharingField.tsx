@@ -67,8 +67,8 @@ export function SharingField({
               aria-pressed={mode === option}
               className={`btn flex-1 px-3 text-base ${
                 mode === option
-                  ? 'bg-brand text-paper'
-                  : 'border-2 border-rule bg-paper-raised text-ink active:bg-brand-tint'
+                  ? 'bg-brand text-white'
+                  : 'border-2 border-line bg-surface text-ink active:bg-brand-tint'
               }`}
             >
               {option === 'khata'
@@ -111,8 +111,8 @@ export function SharingField({
                   value={partnerShare}
                   placeholder="0"
                   onChange={(event) => onPartnerShareChange(event.target.value.replace(/[^0-9.]/g, ''))}
-                  className={`tabular min-h-touch w-full rounded-2xl border-2 bg-paper-raised py-3 pr-4 pl-10 text-2xl font-bold text-rupee ${
-                    errors?.share ? 'border-danger' : 'border-rule'
+                  className={`tabular min-h-touch w-full rounded-2xl border-2 bg-surface py-3 pr-4 pl-10 text-2xl font-bold text-debit ${
+                    errors?.share ? 'border-danger' : 'border-line'
                   }`}
                 />
               </div>
@@ -126,7 +126,7 @@ export function SharingField({
               </button>
             </div>
             {errors?.share ? (
-              <p className="mt-2 text-base font-semibold text-danger" role="alert">
+              <p className="mt-2 error-text" role="alert">
                 {errors.share}
               </p>
             ) : null}
@@ -135,9 +135,9 @@ export function SharingField({
       ) : null}
 
       {/* What this entry is actually worth to the household. */}
-      <dl className="mt-4 flex items-baseline justify-between border-t-2 border-rule pt-3">
+      <dl className="mt-4 flex items-baseline justify-between border-t-2 border-line pt-3">
         <dt className="text-lg font-semibold text-ink-soft">{shareLabel}</dt>
-        <dd className="tabular text-3xl font-bold text-rupee">
+        <dd className="tabular text-3xl font-bold text-debit">
           {own === null ? '—' : formatRupees(own)}
         </dd>
       </dl>

@@ -2,7 +2,8 @@
  * Expense reads and writes. Everything is local and synchronous-feeling: no
  * function here awaits the network, and none can (CLAUDE.md §2.1).
  */
-import { totalHouseholdShare, uuidv7 } from '@kisanmitra/shared';
+import { uuidv7 } from '@kisanmitra/shared';
+import { partnersByKhata, sumShares } from './shares.js';
 import { db } from './db.js';
 import type { AppContext } from './seed.js';
 import type { LocalExpense, LocalPhoto, LocalReceipt } from './types.js';
@@ -229,10 +230,15 @@ export async function listExpenses(cropCycleId: string): Promise<LocalExpense[]>
  */
 export async function seasonTotal(
   cropCycleId: string,
+  householdId?: string,
 ): Promise<{ total: number; billed: number; count: number }> {
   const rows = await listExpenses(cropCycleId);
+  // An entry on the default sharing mode follows its khata's agreed split, so
+  // the partners have to be loaded to total the season correctly.
+  const partners = await partnersByKhata(householdId ?? rows[0]?.householdId ?? '');
+
   return {
-    total: totalHouseholdShare(rows),
+    total: sumShares(rows, partners),
     billed: rows.reduce((sum, e) => sum + (e.amount ?? 0), 0),
     count: rows.length,
   };
