@@ -80,7 +80,7 @@ describe('every navigation destination opens', () => {
 describe('khata screens', () => {
   it('opens a khata with partners and shows the settlement split', async () => {
     await saveKhata(ctx, {
-      name: 'आलू 2025-26', cropId: null, fieldId: null, season: '2025-26', openedOn: '2025-10-01',
+      name: 'आलू 2025-26', cropId: null, fieldId: null, openedOn: '2025-10-01',
       durationMonths: 5, notes: null,
       partners: [
         { name: 'आप', sharePercent: 50, isSelf: true },
@@ -102,7 +102,7 @@ describe('khata screens', () => {
 
   it('settles a khata and makes it read-only', async () => {
     await saveKhata(ctx, {
-      name: 'गेहूँ', cropId: null, fieldId: null, season: '2025-26', openedOn: '2025-10-01',
+      name: 'गेहूँ', cropId: null, fieldId: null, openedOn: '2025-10-01',
       durationMonths: 6, notes: null, partners: [],
     });
 
@@ -116,6 +116,53 @@ describe('khata screens', () => {
 
     expect(await screen.findByRole('button', { name: 'दोबारा खोलें' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'खर्च जोड़ें' })).not.toBeInTheDocument();
+  });
+});
+
+describe('year books', () => {
+  it('opens the current year and keeps older ones shut until tapped', async () => {
+    const { seasonLabel, today } = await import('@kisanmitra/shared');
+    const thisSeason = seasonLabel(today());
+
+    await saveKhata(ctx, {
+      name: 'इस साल', cropId: null, fieldId: null, openedOn: today(),
+      durationMonths: null, notes: null, partners: [],
+    });
+    await saveKhata(ctx, {
+      name: 'पुराना साल', cropId: null, fieldId: null, openedOn: '2020-11-01',
+      durationMonths: null, notes: null, partners: [],
+    });
+
+    const user = userEvent.setup();
+    await unlocked(user);
+    await user.click(screen.getByRole('button', { name: 'खाते' }));
+
+    // Both covers are on screen...
+    await screen.findByRole('button', { name: new RegExp(thisSeason) });
+    const oldBook = screen.getByRole('button', { name: /2020-21/ });
+
+    // ...but only this year's khatas are.
+    expect(screen.getByRole('button', { name: /इस साल/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /पुराना साल/ })).not.toBeInTheDocument();
+    expect(oldBook).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(oldBook);
+    expect(await screen.findByRole('button', { name: /पुराना साल/ })).toBeInTheDocument();
+  });
+
+  it('files a khata by its opening date, not the calendar year', async () => {
+    // March belongs to the season that began the previous October.
+    await saveKhata(ctx, {
+      name: 'वसंत', cropId: null, fieldId: null, openedOn: '2026-03-14',
+      durationMonths: null, notes: null, partners: [],
+    });
+
+    const user = userEvent.setup();
+    await unlocked(user);
+    await user.click(screen.getByRole('button', { name: 'खाते' }));
+
+    expect(await screen.findByRole('button', { name: /2025-26/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /2026-27/ })).not.toBeInTheDocument();
   });
 });
 

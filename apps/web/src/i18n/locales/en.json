@@ -282,7 +282,16 @@
     "months_other": "{{count}} months",
     "closesOn": "Expected to close {{date}}",
     "overdue": "Past its season",
-    "openedLabel": "Opened"
+    "openedLabel": "Opened",
+    "yearBook": "{{season}} book",
+    "openCount_one": "{{count}} open",
+    "openCount_other": "{{count}} open",
+    "allSettled": "all settled",
+    "khataCount_one": "{{count}} khata",
+    "khataCount_other": "{{count}} khatas",
+    "openBook": "Open book",
+    "closeBook": "Close book",
+    "yearTotal": "Year total"
   },
   "sharing": {
     "label": "Split",

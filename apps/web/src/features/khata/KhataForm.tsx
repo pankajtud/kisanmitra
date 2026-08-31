@@ -56,11 +56,11 @@ export function KhataForm({
   const [cropId, setCropId] = useState<string | null>(null);
   const [fieldId, setFieldId] = useState<string | null>(null);
   const [openedOn, setOpenedOn] = useState(today());
-  const [season, setSeason] = useState(seasonLabel(today()));
+  /** Derived from the opening date — it decides the year book (see db/khata.ts). */
+  const season = seasonLabel(openedOn);
   const [duration, setDuration] = useState('');
   const [newCrop, setNewCrop] = useState('');
   const [partners, setPartners] = useState<PartnerInput[]>([]);
-  const [seasonEdited, setSeasonEdited] = useState(false);
   const [nameEdited, setNameEdited] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
@@ -79,7 +79,6 @@ export function KhataForm({
       setCropId(khata.cropId);
       setFieldId(khata.fieldId);
       setOpenedOn(khata.openedOn);
-      setSeason(khata.season ?? seasonLabel(khata.openedOn));
       setDuration(khata.durationMonths === null ? '' : String(khata.durationMonths));
       setPartners(rows.map((r) => ({ name: r.name, sharePercent: r.sharePercent, isSelf: r.isSelf })));
     })();
@@ -165,7 +164,6 @@ export function KhataForm({
         name: title.trim(),
         cropId,
         fieldId,
-        season: season.trim() || null,
         openedOn,
         durationMonths: duration === '' ? null : Number(duration),
         notes: loaded?.notes ?? null,
@@ -239,30 +237,13 @@ export function KhataForm({
           emptyChoiceLabel={t('expense.fieldAll')}
         />
 
-        <DateField
-          value={openedOn}
-          onChange={(next) => {
-            setOpenedOn(next);
-            if (!seasonEdited) setSeason(seasonLabel(next));
-          }}
-        />
+        <DateField value={openedOn} onChange={setOpenedOn} />
 
-        {/* The season the khata belongs to. A khata opened in March belongs to
-            the crop planted the previous autumn, so this is derived from the
-            opening date rather than the calendar year — and stays editable. */}
-        <label className="block">
-          <span className="label">{t('khata.seasonLabel')}</span>
-          <input
-            type="text"
-            value={season}
-            onChange={(event) => {
-              setSeason(event.target.value);
-              setSeasonEdited(true);
-            }}
-            placeholder="2025-26"
-            className="input tabular"
-          />
-        </label>
+        {/* Which year book this khata files under. Shown, not asked: the
+            opening date decides it, and a second answer could disagree. */}
+        <p className="tabular rounded-2xl bg-sunk px-4 py-3 text-base font-semibold text-ink-soft">
+          {t('khata.seasonLabel')}: <span className="text-ink">{season}</span>
+        </p>
 
         <div>
           <span className="label">{t('khata.durationLabel')}</span>

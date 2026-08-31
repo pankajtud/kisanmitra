@@ -282,7 +282,16 @@
     "months_other": "{{count}} महीने",
     "closesOn": "अनुमान से {{date}} तक",
     "overdue": "समय पूरा हो गया",
-    "openedLabel": "शुरू हुआ"
+    "openedLabel": "शुरू हुआ",
+    "yearBook": "{{season}} की बही",
+    "openCount_one": "{{count}} चालू",
+    "openCount_other": "{{count}} चालू",
+    "allSettled": "सब बंद",
+    "khataCount_one": "{{count}} खाता",
+    "khataCount_other": "{{count}} खाते",
+    "openBook": "बही खोलें",
+    "closeBook": "बही बंद करें",
+    "yearTotal": "साल का हिसाब"
   },
   "sharing": {
     "label": "बँटवारा",

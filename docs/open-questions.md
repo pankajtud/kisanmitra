@@ -202,6 +202,21 @@ had it right — two different numbers for the same money.
 Now resolved through `db/shares.ts`, which loads each khata's partners before
 totalling. Covered by `src/test/shares.test.ts` so it cannot come back.
 
+### Q24. The season is derived again, not typed
+
+Q-earlier added an editable season on the khata. Making the year book key on
+the opening date put those in conflict: a user could label a khata 2024-25 and
+still find it filed under 2025-26.
+
+→ The season is now **always derived from `opened_on`** and shown read-only.
+One question, one answer. `khatas.season` is still stored — the Sheets mirror
+at M4 will want it as a column rather than recomputing — but it is never typed.
+
+Which means the October turnover (Q10) now decides which book a khata lands in,
+not just a label. **Still an assumption.** If this district turns over
+elsewhere, `SEASON_START_MONTH` is the one constant to change, and khatas near
+the boundary would move between books.
+
 ### Q22. Crop durations are guesses
 
 The twelve seeded crops carry a `defaultDurationMonths` used to prefill a

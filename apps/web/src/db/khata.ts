@@ -3,6 +3,7 @@
  */
 import {
   khataBalance,
+  type KhataBalance,
   seasonLabel,
   today,
   uuidv7,
@@ -30,8 +31,6 @@ export interface KhataInput {
   cropId: string | null;
   /** Which plot the venture is on. Optional — a khata may span the whole farm. */
   fieldId: string | null;
-  /** '2025-26'. Derived from the opening date when not given. */
-  season: string | null;
   openedOn: string;
   /** Intended length of the venture, in months. */
   durationMonths: number | null;
@@ -58,7 +57,10 @@ export async function saveKhata(
       cropId: input.cropId,
       fieldId: input.fieldId,
       name: input.name,
-      season: input.season ?? seasonLabel(input.openedOn),
+      // Always derived, never typed: the opening date decides which year book a
+      // khata belongs to, so a season that could disagree with it would be a
+      // second, contradictory answer to the same question.
+      season: seasonLabel(input.openedOn),
       openedOn: input.openedOn,
       durationMonths: input.durationMonths,
       status: existing?.status ?? 'open',
@@ -209,4 +211,47 @@ export async function knownPartnerNames(householdId: string): Promise<string[]> 
     }
   }
   return [...seen.values()];
+}
+
+export interface YearBook {
+  /** '2025-26'. The season the khatas in it were opened in. */
+  season: string;
+  khatas: { khata: LocalKhata; balance: KhataBalance }[];
+  /** The household's own share across the year. */
+  earnings: number;
+  expenses: number;
+  balance: number;
+  openCount: number;
+}
+
+/**
+ * Every khata gathered into the year it was opened in — a book per season.
+ *
+ * Membership is decided by `opened_on` alone. A khata opened in March 2026
+ * belongs to the 2025-26 book, because the farming year turns over in October
+ * and a spring harvest is the back half of the previous autumn's planting.
+ *
+ * Newest book first, and inside each, open khatas before settled ones.
+ */
+export async function yearBooks(householdId: string): Promise<YearBook[]> {
+  const khatas = await listKhatas(householdId);
+  const books = new Map<string, YearBook>();
+
+  for (const khata of khatas) {
+    const season = seasonLabel(khata.openedOn);
+    let book = books.get(season);
+    if (!book) {
+      book = { season, khatas: [], earnings: 0, expenses: 0, balance: 0, openCount: 0 };
+      books.set(season, book);
+    }
+
+    const balance = await balanceOf(khata.id);
+    book.khatas.push({ khata, balance });
+    book.earnings = Math.round((book.earnings + balance.earnings) * 100) / 100;
+    book.expenses = Math.round((book.expenses + balance.expenses) * 100) / 100;
+    book.balance = Math.round((book.balance + balance.balance) * 100) / 100;
+    if (khata.status !== 'settled') book.openCount += 1;
+  }
+
+  return [...books.values()].sort((a, b) => b.season.localeCompare(a.season));
 }
