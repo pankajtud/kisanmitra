@@ -8,6 +8,7 @@
  * over an already-narrow index range.
  */
 import Dexie, { type EntityTable } from 'dexie';
+import { seasonLabel } from '@kisanmitra/shared';
 import type {
   LocalColdStore,
   LocalCrop,
@@ -114,6 +115,19 @@ export class KisanMitraDb extends Dexie {
             row.sharingMode ??= 'khata';
           });
       });
+
+    // v5 gives a khata its season and intended duration. Existing khatas get a
+    // season derived from the day they were opened; duration stays null, which
+    // simply means no expected closing date rather than an overdue one.
+    this.version(5).upgrade(async (tx) => {
+      await tx
+        .table('khatas')
+        .toCollection()
+        .modify((row: { openedOn?: string; season?: string | null; durationMonths?: number | null }) => {
+          if (row.season == null && row.openedOn) row.season = seasonLabel(row.openedOn);
+          row.durationMonths ??= null;
+        });
+    });
   }
 }
 

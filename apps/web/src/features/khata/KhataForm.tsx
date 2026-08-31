@@ -1,4 +1,10 @@
-import { partnersAddUp, today } from '@kisanmitra/shared';
+import {
+  expectedEnd,
+  formatRegisterDate,
+  partnersAddUp,
+  seasonLabel,
+  today,
+} from '@kisanmitra/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +12,14 @@ import { ChoiceGrid } from '../../components/ChoiceGrid.js';
 import { DateField } from '../../components/DateField.js';
 import { Screen } from '../../components/Screen.js';
 import { SuggestField } from '../../components/SuggestField.js';
-import { getKhata, khataPartners, knownPartnerNames, saveKhata, type PartnerInput } from '../../db/khata.js';
+import { addCrop } from '../../db/crops.js';
+import {
+  getKhata,
+  khataPartners,
+  knownPartnerNames,
+  saveKhata,
+  type PartnerInput,
+} from '../../db/khata.js';
 import type { AppContext } from '../../db/seed.js';
 import type { LocalKhata } from '../../db/types.js';
 import { useCrops } from '../../hooks/useAppData.js';
@@ -40,7 +53,11 @@ export function KhataForm({
   const [name, setName] = useState('');
   const [cropId, setCropId] = useState<string | null>(null);
   const [openedOn, setOpenedOn] = useState(today());
+  const [season, setSeason] = useState(seasonLabel(today()));
+  const [duration, setDuration] = useState('');
+  const [newCrop, setNewCrop] = useState('');
   const [partners, setPartners] = useState<PartnerInput[]>([]);
+  const [seasonEdited, setSeasonEdited] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   useEffect(() => {
@@ -54,6 +71,8 @@ export function KhataForm({
       setName(khata.name);
       setCropId(khata.cropId);
       setOpenedOn(khata.openedOn);
+      setSeason(khata.season ?? seasonLabel(khata.openedOn));
+      setDuration(khata.durationMonths === null ? '' : String(khata.durationMonths));
       setPartners(rows.map((r) => ({ name: r.name, sharePercent: r.sharePercent, isSelf: r.isSelf })));
     })();
     return () => {
@@ -91,6 +110,25 @@ export function KhataForm({
   const setPartner = (index: number, patch: Partial<PartnerInput>) =>
     setPartners((current) => current.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
+  /** Selecting a crop fills in whatever the khata has not been told yet. */
+  const applyCrop = (next: string | null) => {
+    setCropId(next);
+    const crop = crops.find((c) => c.id === next);
+    if (!crop) return;
+    if (name.trim() === '') setName(`${crop.nameHi} ${season}`.trim());
+    if (duration === '' && crop.defaultDurationMonths) {
+      setDuration(String(crop.defaultDurationMonths));
+    }
+  };
+
+  const handleAddCrop = async () => {
+    const id = await addCrop(ctx.householdId, { nameHi: newCrop });
+    setNewCrop('');
+    if (id) applyCrop(id);
+  };
+
+  const closesOn = expectedEnd(openedOn, duration === '' ? null : Number(duration));
+
   const handleSave = async () => {
     const next: Record<string, string | undefined> = {};
     if (name.trim() === '') next.name = t('khata.nameMissing');
@@ -104,7 +142,15 @@ export function KhataForm({
 
     const id = await saveKhata(
       ctx,
-      { name: name.trim(), cropId, openedOn, notes: loaded?.notes ?? null, partners },
+      {
+        name: name.trim(),
+        cropId,
+        season: season.trim() || null,
+        openedOn,
+        durationMonths: duration === '' ? null : Number(duration),
+        notes: loaded?.notes ?? null,
+        partners,
+      },
       loaded?.id,
     );
     onDone(id);
@@ -141,23 +187,99 @@ export function KhataForm({
           required
         />
 
-        <ChoiceGrid
-          legend={t('expense.cropLabel')}
-          choices={crops.map((c) => ({
-            id: c.id,
-            label: refLabel({ labelHi: c.nameHi, labelEn: c.nameEn }),
-          }))}
-          value={cropId}
+        <div>
+          <ChoiceGrid
+            legend={t('expense.cropLabel')}
+            choices={crops.map((c) => ({
+              id: c.id,
+              label: refLabel({ labelHi: c.nameHi, labelEn: c.nameEn }),
+            }))}
+            value={cropId}
+            onChange={(next) => applyCrop(next)}
+            emptyChoiceLabel={t('expense.cropAll')}
+          />
+
+          {/* A crop that is not on the list yet. Typing it here adds it to the
+              household's reference data, so it is a tap next time. */}
+          <div className="mt-2 flex items-start gap-2">
+            <input
+              type="text"
+              value={newCrop}
+              onChange={(event) => setNewCrop(event.target.value)}
+              placeholder={t('crops.namePlaceholder')}
+              aria-label={t('crops.add')}
+              className="input flex-1"
+            />
+            <button
+              type="button"
+              disabled={newCrop.trim() === ''}
+              onClick={() => void handleAddCrop()}
+              className="btn-secondary px-4"
+            >
+              {t('crops.add')}
+            </button>
+          </div>
+        </div>
+
+        <DateField
+          value={openedOn}
           onChange={(next) => {
-            setCropId(next);
-            // Name the khata after the crop and season unless one is typed.
-            const crop = crops.find((c) => c.id === next);
-            if (crop && name.trim() === '') setName(crop.nameHi);
+            setOpenedOn(next);
+            if (!seasonEdited) setSeason(seasonLabel(next));
           }}
-          emptyChoiceLabel={t('expense.cropAll')}
         />
 
-        <DateField value={openedOn} onChange={setOpenedOn} />
+        {/* The season the khata belongs to. A khata opened in March belongs to
+            the crop planted the previous autumn, so this is derived from the
+            opening date rather than the calendar year — and stays editable. */}
+        <label className="block">
+          <span className="label">{t('khata.seasonLabel')}</span>
+          <input
+            type="text"
+            value={season}
+            onChange={(event) => {
+              setSeason(event.target.value);
+              setSeasonEdited(true);
+            }}
+            placeholder="2025-26"
+            className="input tabular"
+          />
+        </label>
+
+        <div>
+          <span className="label">{t('khata.durationLabel')}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {[3, 4, 5, 6, 12].map((months) => (
+              <button
+                key={months}
+                type="button"
+                onClick={() => setDuration(String(months))}
+                aria-pressed={duration === String(months)}
+                className={`btn btn-sm ${
+                  duration === String(months)
+                    ? 'bg-brand text-white'
+                    : 'border-2 border-line bg-surface text-ink active:bg-brand-tint'
+                }`}
+              >
+                {t('khata.months', { count: months })}
+              </button>
+            ))}
+            <input
+              type="text"
+              inputMode="numeric"
+              value={duration}
+              onChange={(event) => setDuration(event.target.value.replace(/[^0-9]/g, ''))}
+              aria-label={t('khata.durationLabel')}
+              className="input tabular h-14 w-20 px-2 text-center"
+            />
+          </div>
+
+          {closesOn ? (
+            <p className="tabular mt-2 text-base text-ink-soft">
+              {t('khata.closesOn', { date: formatRegisterDate(closesOn) })}
+            </p>
+          ) : null}
+        </div>
 
         <fieldset>
           <legend className="label">{t('khata.partners')}</legend>

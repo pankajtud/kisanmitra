@@ -10,5 +10,6 @@ export * from './domain/ids.js';
 export * from './domain/khata.js';
 export * from './domain/lot.js';
 export * from './domain/money.js';
+export * from './domain/season.js';
 export * from './domain/sharing.js';
 export * from './domain/stock.js';

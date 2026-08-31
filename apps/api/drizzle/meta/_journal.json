@@ -43,6 +43,13 @@
       "when": 1788163558274,
       "tag": "0005_lots_become_locations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788168802418,
+      "tag": "0006_khata_season_and_duration",
+      "breakpoints": true
     }
   ]
 }

@@ -95,6 +95,11 @@ export const crops = pgTable('crops', {
   defaultUnit: text('default_unit'),
   /** Only potato goes into cold storage as graded lots; wheat is sold straight off the field. */
   usesColdStorage: boolean('uses_cold_storage').notNull().default(false),
+  /**
+   * How long this crop usually occupies the ground, in months. Used to fill in
+   * a khata's intended duration so the common case needs no typing.
+   */
+  defaultDurationMonths: integer('default_duration_months'),
   sortOrder: integer('sort_order').notNull().default(0),
   archivedAt: timestamp('archived_at', { withTimezone: true }),
 });
@@ -116,7 +121,19 @@ export const khatas = pgTable('khatas', {
   cropId: uuid('crop_id').references(() => crops.id),
   /** What the farmer calls it: 'आलू 2025-26'. */
   name: text('name').notNull(),
+  /**
+   * The growing season this khata belongs to, as the household writes it:
+   * '2025-26'. Filled in from `opened_on` and editable, because a khata opened
+   * late still belongs to the season it was farmed in.
+   */
+  season: text('season'),
   openedOn: date('opened_on').notNull(),
+  /**
+   * How long the venture is meant to run, in months. Together with `opened_on`
+   * this gives an expected closing date, which is what makes a khata left open
+   * past its season visible rather than forgotten.
+   */
+  durationMonths: integer('duration_months'),
   /** 'open' | 'settled'. A settled khata is read-only. */
   status: text('status').notNull().default('open'),
   settledOn: date('settled_on'),

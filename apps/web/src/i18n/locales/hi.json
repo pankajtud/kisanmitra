@@ -258,7 +258,14 @@
     "selectMissing": "खाता चुनें",
     "settlementTitle": "किसका कितना",
     "cannotDelete": "इसमें {{count}} रिकॉर्ड हैं, पहले वो हटाएं",
-    "locked": "यह खाता बंद है"
+    "locked": "यह खाता बंद है",
+    "seasonLabel": "कौन सा सीजन?",
+    "durationLabel": "कितने महीने चलेगा?",
+    "months_one": "{{count}} महीना",
+    "months_other": "{{count}} महीने",
+    "closesOn": "अनुमान से {{date}} तक",
+    "overdue": "समय पूरा हो गया",
+    "openedLabel": "शुरू हुआ"
   },
   "sharing": {
     "label": "बँटवारा",

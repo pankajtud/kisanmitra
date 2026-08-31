@@ -19,12 +19,14 @@ beforeEach(async () => {
   await db.khatas.bulkPut([
     {
       id: SHARED, householdId: HOUSEHOLD, cropCycleId: null, cropId: null,
-      name: 'आलू', openedOn: '2025-10-01', status: 'open', settledOn: null, notes: null,
+      name: 'आलू', season: '2025-26', openedOn: '2025-10-01', durationMonths: 5,
+      status: 'open', settledOn: null, notes: null,
       createdBy: null, createdAt: '', updatedAt: '', deletedAt: null, syncState: 'pending',
     },
     {
       id: SOLO, householdId: HOUSEHOLD, cropCycleId: null, cropId: null,
-      name: 'गेहूं', openedOn: '2025-10-01', status: 'open', settledOn: null, notes: null,
+      name: 'गेहूं', season: '2025-26', openedOn: '2025-10-01', durationMonths: 6,
+      status: 'open', settledOn: null, notes: null,
       createdBy: null, createdAt: '', updatedAt: '', deletedAt: null, syncState: 'pending',
     },
   ]);

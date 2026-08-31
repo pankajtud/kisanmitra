@@ -258,7 +258,14 @@
     "selectMissing": "Choose a khata",
     "settlementTitle": "Who gets what",
     "cannotDelete": "It holds {{count}} records — remove those first",
-    "locked": "This khata is closed"
+    "locked": "This khata is closed",
+    "seasonLabel": "Which season?",
+    "durationLabel": "How many months will it run?",
+    "months_one": "{{count}} month",
+    "months_other": "{{count}} months",
+    "closesOn": "Expected to close {{date}}",
+    "overdue": "Past its season",
+    "openedLabel": "Opened"
   },
   "sharing": {
     "label": "Split",

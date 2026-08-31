@@ -44,12 +44,14 @@ export const SEED_COLD_STORE = 'G.L. Cold Storage, Chitaura';
  * Only potato is graded into lots; everything else sells by weight.
  */
 export const SEED_CROPS = [
-  { nameHi: 'आलू', nameEn: 'Potato', defaultUnit: 'बोरा', usesColdStorage: true, sortOrder: 0 },
-  { nameHi: 'गेहूं', nameEn: 'Wheat', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 1 },
-  { nameHi: 'सरसों', nameEn: 'Mustard', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 2 },
-  { nameHi: 'धान', nameEn: 'Paddy', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 3 },
-  { nameHi: 'मटर', nameEn: 'Peas', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 4 },
-  { nameHi: 'गन्ना', nameEn: 'Sugarcane', defaultUnit: 'कुंतल', usesColdStorage: false, sortOrder: 5 },
+  { nameHi: 'आलू', nameEn: 'Potato', defaultUnit: 'बोरा', usesColdStorage: true, defaultDurationMonths: 5, sortOrder: 0 },
+  { nameHi: 'गेहूं', nameEn: 'Wheat', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 6, sortOrder: 1 },
+  { nameHi: 'सरसों', nameEn: 'Mustard', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 5, sortOrder: 2 },
+  { nameHi: 'धान', nameEn: 'Paddy', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 5, sortOrder: 3 },
+  { nameHi: 'मटर', nameEn: 'Peas', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 4, sortOrder: 4 },
+  // Sugarcane sits in the ground about a year — the reason duration is a
+  // per-crop default rather than one number for the farm.
+  { nameHi: 'गन्ना', nameEn: 'Sugarcane', defaultUnit: 'कुंतल', usesColdStorage: false, defaultDurationMonths: 12, sortOrder: 5 },
 ] as const;
 
 /**

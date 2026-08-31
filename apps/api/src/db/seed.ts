@@ -7,6 +7,7 @@
 import { eq } from 'drizzle-orm';
 import {
   SEED_COLD_STORE,
+  SEED_CROPS,
   SEED_EXPENSE_CATEGORIES,
   SEED_FIELDS,
   SEED_GRADES,
@@ -26,12 +27,28 @@ async function main() {
     .limit(1);
 
   if (existing[0]) {
+    const householdId = existing[0].id;
     const user = await db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.householdId, existing[0].id))
+      .where(eq(schema.users.householdId, householdId))
       .limit(1);
-    report(existing[0].id, user[0]?.id ?? '(none)');
+
+    // Reference data introduced after this household was first seeded has to be
+    // backfilled, or re-running the seed leaves it silently missing.
+    const crops = await db
+      .select()
+      .from(schema.crops)
+      .where(eq(schema.crops.householdId, householdId))
+      .limit(1);
+    if (!crops[0]) {
+      await db
+        .insert(schema.crops)
+        .values(SEED_CROPS.map((crop) => ({ id: uuidv7(), householdId, ...crop })));
+      console.log('backfilled crops');
+    }
+
+    report(householdId, user[0]?.id ?? '(none)');
     return;
   }
 
@@ -50,6 +67,10 @@ async function main() {
       ...CROP_CYCLE,
       isCurrent: true,
     });
+
+    await tx.insert(schema.crops).values(
+      SEED_CROPS.map((crop) => ({ id: uuidv7(), householdId, ...crop })),
+    );
 
     await tx.insert(schema.grades).values(
       SEED_GRADES.map((g) => ({ id: uuidv7(), householdId, ...g })),

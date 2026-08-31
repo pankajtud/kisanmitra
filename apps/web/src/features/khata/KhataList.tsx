@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { formatRegisterDate, formatRupees } from '@kisanmitra/shared';
+import { formatRegisterDate, formatRupees, isOverdue, today } from '@kisanmitra/shared';
 import { useTranslation } from 'react-i18next';
 import { Money } from '../../components/Money.js';
 import { Screen } from '../../components/Screen.js';
@@ -64,7 +64,14 @@ export function KhataList({
                   className={`card-tap w-full px-4 py-4 ${settled ? 'opacity-65' : ''}`}
                 >
                   <span className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-xl font-bold">{khata.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-xl font-bold">
+                      {khata.name}
+                      {khata.season ? (
+                        <span className="tabular ml-2 text-base font-semibold text-ink-soft">
+                          {khata.season}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className={settled ? 'badge-done' : 'badge-open'}>
                       {settled ? t('khata.settled') : t('khata.open')}
                     </span>
@@ -88,6 +95,11 @@ export function KhataList({
                       <span>
                         · {t('khata.settledOn')} {formatRegisterDate(khata.settledOn)}
                       </span>
+                    ) : null}
+                    {/* A khata left open past its season is easy to forget, so
+                        it says so rather than sitting quietly in the list. */}
+                    {!settled && isOverdue(khata.openedOn, khata.durationMonths, today()) ? (
+                      <span className="font-semibold text-accent">· {t('khata.overdue')}</span>
                     ) : null}
                   </span>
                 </button>

@@ -36,6 +36,9 @@ async function openManualEntry(user: ReturnType<typeof userEvent.setup>) {
   const manual = await screen.findByRole('button', { name: 'बिना फोटो के खर्च जोड़ें' });
   await user.click(manual);
   await screen.findByRole('heading', { name: 'नया खर्च' });
+  // The form fills its category and crop grids from live queries. Waiting for
+  // one of them keeps a fast test from clicking Save before the form is ready.
+  await screen.findByRole('button', { name: 'बीज' });
 }
 
 describe('adding an expense without a photo', () => {

@@ -1,7 +1,14 @@
 /**
  * खाता records: the venture, its partners, its ledger and its settlement.
  */
-import { khataBalance, today, uuidv7, type Partner, type SharingMode } from '@kisanmitra/shared';
+import {
+  khataBalance,
+  seasonLabel,
+  today,
+  uuidv7,
+  type Partner,
+  type SharingMode,
+} from '@kisanmitra/shared';
 import { db } from './db.js';
 import type { AppContext } from './seed.js';
 import type { LocalExpense, LocalKhata, LocalKhataPartner, LocalSale } from './types.js';
@@ -21,7 +28,11 @@ export interface PartnerInput {
 export interface KhataInput {
   name: string;
   cropId: string | null;
+  /** '2025-26'. Derived from the opening date when not given. */
+  season: string | null;
   openedOn: string;
+  /** Intended length of the venture, in months. */
+  durationMonths: number | null;
   notes: string | null;
   /** Includes the household's own row. Empty means the household keeps all of it. */
   partners: PartnerInput[];
@@ -44,7 +55,9 @@ export async function saveKhata(
       cropCycleId: existing?.cropCycleId ?? ctx.cropCycleId,
       cropId: input.cropId,
       name: input.name,
+      season: input.season ?? seasonLabel(input.openedOn),
       openedOn: input.openedOn,
+      durationMonths: input.durationMonths,
       status: existing?.status ?? 'open',
       settledOn: existing?.settledOn ?? null,
       notes: input.notes,

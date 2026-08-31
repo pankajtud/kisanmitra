@@ -1,15 +1,19 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   entryShare,
+  expectedEnd,
   formatRegisterDate,
   formatRupees,
+  isOverdue,
   settlement,
+  today,
   type Partner,
   type SharingMode,
 } from '@kisanmitra/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Screen } from '../../components/Screen.js';
+import { DetailRow } from '../../components/ui.js';
 import { balanceOf, khataLedger, khataPartners, reopenKhata, settleKhata } from '../../db/khata.js';
 import { getKhata } from '../../db/khata.js';
 import type { AppContext } from '../../db/seed.js';
@@ -73,6 +77,8 @@ export function KhataDetail({
   }
 
   const settled = khata.status === 'settled';
+  const closesOn = expectedEnd(khata.openedOn, khata.durationMonths);
+  const overdue = !settled && isOverdue(khata.openedOn, khata.durationMonths, today());
   const asPartners: Partner[] = partners.map((p) => ({
     name: p.name,
     sharePercent: p.sharePercent,
@@ -116,6 +122,30 @@ export function KhataDetail({
             {khata.settledOn ? ` · ${formatRegisterDate(khata.settledOn)}` : ''}
           </p>
         ) : null}
+
+        {/* When it ran. A khata is a season's worth of work, and the dates are
+            what make a forgotten one visible. */}
+        <dl className="card divide-y divide-line">
+          {khata.season ? <DetailRow label={t('khata.seasonLabel')} value={khata.season} tabular /> : null}
+          <DetailRow
+            label={t('khata.openedLabel')}
+            value={formatRegisterDate(khata.openedOn)}
+            tabular
+          />
+          {khata.durationMonths ? (
+            <DetailRow
+              label={t('khata.durationLabel')}
+              value={
+                <span className={overdue ? 'text-accent' : undefined}>
+                  {t('khata.months', { count: khata.durationMonths })}
+                  {closesOn ? ` · ${formatRegisterDate(closesOn)}` : ''}
+                  {overdue ? ` · ${t('khata.overdue')}` : ''}
+                </span>
+              }
+              tabular
+            />
+          ) : null}
+        </dl>
 
         <div className="card px-5 py-4">
           <span className="block text-lg font-semibold text-ink-soft">
