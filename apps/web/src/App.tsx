@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NavTab } from './components/BottomNav.js';
+import { ErrorBoundary, ErrorScreen } from './components/ErrorScreen.js';
 import { PinLock, useAutoLock } from './components/PinLock.js';
 import { ExpenseDetail } from './features/expenses/ExpenseDetail.js';
 import { ExpenseForm } from './features/expenses/ExpenseForm.js';
@@ -48,8 +49,16 @@ type Screen =
   | { name: 'stores' };
 
 export function App() {
+  return (
+    <ErrorBoundary>
+      <Screens />
+    </ErrorBoundary>
+  );
+}
+
+function Screens() {
   const { t } = useTranslation();
-  const ctx = useAppContext();
+  const { ctx, error, retry } = useAppContext();
   const [locked, setLocked] = useState(true);
   const [stack, setStack] = useState<Screen[]>([{ name: 'home' }]);
   const [captureError, setCaptureError] = useState<string | null>(null);
@@ -93,6 +102,8 @@ export function App() {
 
   // The gate goes in front of everything, including the seeded reference data.
   if (locked) return <PinLock onUnlocked={() => setLocked(false)} />;
+  // The database would not open. Say so, rather than rendering nothing.
+  if (error) return <ErrorScreen error={error} onRetry={retry} />;
   if (!ctx) return null;
 
   switch (screen.name) {

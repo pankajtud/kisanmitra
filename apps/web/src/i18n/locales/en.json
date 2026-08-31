@@ -113,7 +113,12 @@
   "error": {
     "photoFailed": "Couldn't take the photo. Try again.",
     "saveFailed": "Not saved. Press again.",
-    "notFound": "That expense wasn't found."
+    "notFound": "That expense wasn't found.",
+    "brokenTitle": "The app could not open",
+    "brokenHelp": "Press below to try again.",
+    "tryAgain": "Try again",
+    "reopen": "Reopen the app",
+    "dataSafe": "All your records are safe on this phone. Nothing has been lost."
   },
   "stock": {
     "title": "Cold storage",

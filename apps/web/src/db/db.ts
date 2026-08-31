@@ -8,7 +8,7 @@
  * over an already-narrow index range.
  */
 import Dexie, { type EntityTable } from 'dexie';
-import { seasonLabel } from '@kisanmitra/shared';
+import { seasonLabel, uuidv7 } from '@kisanmitra/shared';
 import type {
   LocalColdStore,
   LocalCrop,
@@ -141,6 +141,43 @@ export class KisanMitraDb extends Dexie {
         'id, householdId, cropCycleId, khataId, fieldId, [cropCycleId+spentOn], [khataId+spentOn], categoryId, syncState, status',
       inventoryEntries:
         'id, householdId, khataId, cropCycleId, cropId, coldStoreId, fieldId, storedOn, syncState',
+    });
+
+    // v7 rescues lots stranded by v4.
+    //
+    // v4 split a stored consignment into an entry (one cold store) and the lots
+    // inside it, and redeclared `lots` accordingly — but only changed the
+    // schema. Rows written before it kept their old columns and never got an
+    // `entryId`, so they belong to no entry and had quietly stopped appearing
+    // anywhere. The server migration backfilled exactly this; the client never
+    // did. Same treatment here: one entry per stranded lot, carrying the
+    // columns that moved up (CLAUDE.md §2.7 — never lose a record).
+    this.version(7).upgrade(async (tx) => {
+      const lots = await tx.table('lots').toArray();
+      const stranded = lots.filter((lot: { entryId?: string | null }) => !lot.entryId);
+      if (stranded.length === 0) return;
+
+      for (const lot of stranded) {
+        const entryId = uuidv7();
+        await tx.table('inventoryEntries').put({
+          id: entryId,
+          householdId: lot.householdId,
+          cropCycleId: lot.cropCycleId ?? null,
+          khataId: null,
+          cropId: lot.cropId ?? null,
+          coldStoreId: lot.coldStoreId ?? null,
+          storedOn: lot.storedOn ?? lot.createdAt?.slice(0, 10) ?? '1970-01-01',
+          variety: lot.variety ?? null,
+          fieldId: lot.fieldId ?? null,
+          notes: null,
+          createdBy: lot.createdBy ?? null,
+          createdAt: lot.createdAt,
+          updatedAt: lot.updatedAt,
+          deletedAt: lot.deletedAt ?? null,
+          syncState: 'pending',
+        });
+        await tx.table('lots').update(lot.id, { entryId });
+      }
     });
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AUTO_LOCK_MINUTES, isLockSet, setPin, unlock } from '../db/lock.js';
 
@@ -138,7 +138,7 @@ function PinKey({
   disabled,
   label,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
   label?: string;

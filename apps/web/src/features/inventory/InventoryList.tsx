@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { formatLotBreakdown, formatRegisterDate, seasonLabel, today } from '@kisanmitra/shared';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NavTab } from '../../components/BottomNav.js';
 import { Screen } from '../../components/Screen.js';
@@ -137,7 +137,7 @@ export function InventoryList({
   );
 }
 
-function Th({ children, sticky = false }: { children: React.ReactNode; sticky?: boolean }) {
+function Th({ children, sticky = false }: { children: ReactNode; sticky?: boolean }) {
   return (
     <th
       scope="col"

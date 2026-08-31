@@ -306,3 +306,28 @@ describe('offline', () => {
     expect(await screen.findByRole('heading', { name: 'नया खर्च' })).toBeInTheDocument();
   });
 });
+
+describe('when something breaks', () => {
+  it('says so instead of showing a blank screen', async () => {
+    // The failure the user hit: the database will not open, so the app context
+    // never resolves. Previously this rendered nothing at all.
+    // Dexie opens lazily on first use, so failing the first read is a truer
+    // stand-in for a database that will not open than mocking open() itself.
+    vi.spyOn(db.households, 'toCollection').mockImplementation(() => {
+      throw new Error('VersionError: schema mismatch');
+    });
+
+    const user = userEvent.setup();
+    await setPin(PIN);
+    render(<App />);
+    await screen.findByRole('heading', { name: 'अपना पिन डालें' });
+    for (const digit of PIN) await user.click(screen.getByRole('button', { name: digit }));
+
+    expect(await screen.findByRole('heading', { name: 'ऐप खुल नहीं पाया' })).toBeInTheDocument();
+    // The detail is on screen so it can be read out to whoever can act on it.
+    expect(screen.getByText(/schema mismatch/)).toBeInTheDocument();
+    // And the reassurance that matters most.
+    expect(screen.getByText(/कुछ मिटा नहीं है/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'फिर कोशिश करें' })).toBeInTheDocument();
+  });
+});
